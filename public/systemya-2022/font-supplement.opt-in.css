@@ -1,0 +1,25 @@
+/* Optional font alternatives. Do not import into the historical 2022 layout by default. */
+@font-face {
+  font-family: "SegoeUIHistoricalLightAlternative";
+  font-style: normal;
+  font-weight: 200;
+  src: url("/systemya-2022/fonts/optional/segoe-ui-light-ms-v5.32.woff2") format("woff2");
+}
+@font-face {
+  font-family: "SegoeUIAlternate";
+  font-style: normal;
+  font-weight: 300;
+  src: url("/systemya-2022/fonts/optional/segoe-ui-semilight-ms-v5.32.woff2") format("woff2");
+}
+@font-face {
+  font-family: "SegoeUIAlternate";
+  font-style: normal;
+  font-weight: 700;
+  src: url("/systemya-2022/fonts/optional/segoe-ui-bold-ms-v5.32.woff2") format("woff2");
+}
+@font-face {
+  font-family: "SegoeUIVariableAlternative";
+  font-style: normal;
+  font-weight: 300 700;
+  src: url("/systemya-2022/fonts/optional/SegoeUI-VF.ttf") format("truetype");
+}

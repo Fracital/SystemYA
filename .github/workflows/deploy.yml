@@ -1,0 +1,102 @@
+# Build SystemYA on GitHub and upload static files to the edge through divide.
+# SYSTEMYA_DEPLOY_KEY is restricted to rsync under /var/www/systemya.
+# No Holt license or other server credentials belong in this workflow.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: systemya-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  EDGE_HOST: 172.16.5.10
+  EDGE_HOST_KEY: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF1ZwEkS/GtCytgBFNLTaUBSsZHjFaRFFCtiUaBXZ1Od
+  JUMP_HOST: 91.199.82.174
+  JUMP_HOST_KEY: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM71k9bEMvZK8FPmBiwlLvfoELeFOqeRUHvmYZnHns1M
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify source and history
+        run: npm run verify
+      - name: Build the static Astro SPA
+        run: npm run build
+      - name: Check deploy contract
+        run: |
+          test -f dist/index.html
+          node scripts/verify-static-dist.mjs
+          ! find dist -maxdepth 1 \( -name room -o -name v1 -o -name cdn -o -name api \) | grep -q .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: dist/
+          retention-days: 3
+          if-no-files-found: error
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: dist/
+
+      - name: Configure SSH
+        env:
+          SYSTEMYA_DEPLOY_KEY: ${{ secrets.SYSTEMYA_DEPLOY_KEY }}
+        run: |
+          if [[ -z "$SYSTEMYA_DEPLOY_KEY" ]]; then
+            echo "::error::SYSTEMYA_DEPLOY_KEY secret is not set"
+            exit 1
+          fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SYSTEMYA_DEPLOY_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          {
+            echo "$EDGE_HOST $EDGE_HOST_KEY"
+            echo "$JUMP_HOST $JUMP_HOST_KEY"
+          } > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF2
+          Host edge
+            HostName $EDGE_HOST
+            User systemya
+            ProxyJump root@$JUMP_HOST
+          Host *
+            IdentityFile ~/.ssh/id_ed25519
+            IdentitiesOnly yes
+            BatchMode yes
+            StrictHostKeyChecking yes
+          EOF2
+          chmod 600 ~/.ssh/config
+
+      # Copy non-HTML assets first. The second pass publishes HTML and removes old files.
+      - name: Upload assets
+        run: |
+          rsync -rlz --chmod=D755,F644 --exclude='*.html' dist/ edge:
+      - name: Upload pages and remove old files
+        run: |
+          rsync -rlz --chmod=D755,F644 --delete dist/ edge:
+
+      - name: Verify site responds
+        run: |
+          curl -fsS -m 20 -o /dev/null -w 'site %{http_code}\n' https://systemya.fracit.al/
+          curl -fsS -m 20 -o /dev/null -w 'chat %{http_code}\n' https://systemya.fracit.al/room/
+          curl -fsS -m 20 -o /dev/null -w 'sdk %{http_code}\n' https://systemya.fracit.al/cdn/index.js
+          curl -fsS -m 20 -o /dev/null -w 'accounts %{http_code}\n' https://systemya.fracit.al/api/me/options

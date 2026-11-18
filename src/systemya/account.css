@@ -1,0 +1,107 @@
+/* /account/: Fracital Accounts, styled like the Theatre's SDK catalog. */
+#root[data-page="account"] .systemya-account {
+  max-width: 560px;
+  margin: 36px auto 56px;
+  padding: 0 22px;
+}
+.systemya-account h2 {
+  margin: 28px 0 10px;
+  font-size: 1.15em;
+}
+.systemya-account-status {
+  min-height: 1.5em;
+}
+.systemya-account-status[data-kind="error"] {
+  color: #c43d3d;
+}
+.systemya-account-form {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+}
+.systemya-account-field {
+  display: grid;
+  gap: 5px;
+}
+.systemya-account-field input {
+  padding: 10px 11px;
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  width: auto;
+}
+.systemya-account-button {
+  justify-self: start;
+  width: auto;
+  height: auto;
+  margin: 0;
+  background: transparent;
+  color: inherit;
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+  display: inline-flex;
+}
+.systemya-account-button.primary {
+  background: var(--blue, #0078d4);
+  border-color: var(--blue, #0078d4);
+  color: #fff;
+}
+.systemya-account-button.link {
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  color: var(--blue-link, #0067b8);
+}
+.systemya-account-button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.systemya-account-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 18px 0 4px;
+}
+.systemya-account-tabs [aria-pressed="true"] {
+  background: var(--accent, #eee);
+}
+.systemya-account-providers {
+  display: grid;
+  gap: 8px;
+}
+.systemya-account-providers .systemya-account-button {
+  justify-self: stretch;
+  justify-content: center;
+}
+.systemya-account-profile {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.systemya-account-profile img {
+  border-radius: 50%;
+  object-fit: cover;
+}
+.systemya-account-connections {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.systemya-account-connections li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.systemya-account details {
+  margin: 12px 0;
+}
+.systemya-account summary {
+  cursor: pointer;
+}

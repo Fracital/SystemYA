@@ -1,0 +1,696 @@
+import { db, accountsEnabled, userSystemEnabled } from "@config/apis";
+import {
+  m,
+  isUserBanned,
+  unlinkDiscord,
+  linkDiscord,
+  type DiscordUserData,
+} from "@lib/util";
+import { defineMiddleware } from "astro:middleware";
+import engines from "@lib/searchEngines";
+import { getRandomCloak, type AppCloak } from "@lib/cloak";
+import { appConfig } from "@config/config";
+import crypto from "node:crypto";
+import {
+  createProxyRouteSeed,
+  getProxyRouteMap,
+  proxyRouteCookie,
+  proxyRouteCookieMaxAge,
+  torCookie,
+} from "@lib/proxyRoutes.js";
+
+// 400 days in seconds
+const maxAgeLimit = 60 * 60 * 24 * 400;
+
+const defaultBareServer =
+  typeof appConfig.separateBareServer === "string"
+    ? appConfig.separateBareServer
+    : "%{protocol}//%{host}/api/bare/";
+
+// use our default wisp api, which is hosted at /bare/
+// see separateWispServer in ./config/config.js to change this by default
+const defaultWispServer =
+  typeof appConfig.separateWispServer === "string"
+    ? appConfig.separateWispServer
+    : "%{ws}//%{host}/api/wisp/";
+
+// "%{ws}//%{host}/api/wisp/"
+
+// `context` and `next` are automatically typed
+export const onRequest = defineMiddleware(async (context, next) => {
+  // do redirect stuff because im an idiot
+  // oops
+  if (context.url.pathname.startsWith("/donate/"))
+    return context.redirect(
+      "/pro" + context.url.pathname.slice("/donate".length),
+      301,
+    );
+  if (context.url.pathname.startsWith("/sub/"))
+    return context.redirect(
+      "/pro" + context.url.pathname.slice("/sub".length),
+      301,
+    );
+
+  const clientKey = crypto.randomBytes(32);
+  const iv = crypto.randomBytes(16);
+
+  context.locals.clientKey = Buffer.concat([iv, clientKey]).toString("base64");
+
+  const encryptText = async (text: string) => {
+    const cipher = crypto.createCipheriv("aes-256-cbc", clientKey, iv);
+    const encrypted = Buffer.concat([
+      cipher.update(text, "utf8"),
+      cipher.final(),
+    ]);
+    const ivAndCiphertext = encrypted.toString("base64");
+    return ivAndCiphertext;
+  };
+
+  context.locals.encryptText = encryptText;
+
+  const proto = ["localhost", "127.0.0.1"].includes(context.url.hostname)
+    ? "http:"
+    : "https:";
+  context.locals.origin = proto + "//" + context.url.host;
+
+  const validCookieDomain =
+    typeof context.url.hostname === "string" &&
+    context.url.hostname.includes(".") &&
+    !context.url.hostname.includes("_") &&
+    /^[a-z0-9.-]+$/i.test(context.url.hostname) &&
+    !/^\d+\.\d+\.\d+\.\d+$/.test(context.url.hostname)
+      ? context.url.hostname
+      : undefined;
+
+  let proxyRouteSeed = context.cookies.get(proxyRouteCookie)?.value;
+  if (!proxyRouteSeed) {
+    proxyRouteSeed = createProxyRouteSeed();
+    context.cookies.set(proxyRouteCookie, proxyRouteSeed, {
+      domain: validCookieDomain,
+      sameSite: "lax",
+      path: "/",
+      maxAge: proxyRouteCookieMaxAge,
+      // Secure cookies are dropped by the browser over plain HTTP, which
+      // breaks seed-derived asset URLs when developing on localhost.
+      secure: proto === "https:",
+      httpOnly: true,
+    });
+  }
+  context.locals.proxyRoutes = getProxyRouteMap(proxyRouteSeed);
+
+  // The browser theatre client (served from /cdn/index.js) only ever sees
+  // these opaque, seed-derived routes. Rewrite them to the internal /v2/
+  // endpoints so neither /v1/ nor the /v2/ paths themselves are exposed to
+  // the client.
+  const huRoutes = context.locals.proxyRoutes.hu;
+  const huApiPathname = context.url.pathname;
+  if (huApiPathname === huRoutes.queryPath)
+    return context.rewrite(`/v2/query${context.url.search}`);
+  if (huApiPathname === huRoutes.gamePath) return context.rewrite("/v2/game");
+  if (huApiPathname === huRoutes.playPath) return context.rewrite("/v2/play");
+
+  // context.locals.obfus = new HolyObfuscator(context.url.hostname, context.locals.isMainWebsite);
+
+  context.locals.isMainWebsite =
+    !("mainWebsite" in appConfig) ||
+    context.url.hostname === appConfig.mainWebsite;
+
+  // saves the wispServer or delete it
+  context.locals.setBareServer = (newBareServer) => {
+    let validBareServer = typeof newBareServer === "string";
+
+    if (validBareServer)
+      try {
+        new URL(newBareServer as string);
+      } catch (err) {}
+
+    if (validBareServer) {
+      context.cookies.set("bareServer", newBareServer as string, {
+        domain: context.url.hostname,
+        sameSite: "lax",
+        path: "/",
+        maxAge: maxAgeLimit,
+        secure: true,
+      });
+      context.locals.bareServer = newBareServer as string;
+      return true;
+    } else {
+      // clear the cookie
+      if (context.cookies.has("bareServer"))
+        context.cookies.set("bareServer", "", {
+          domain: context.url.hostname,
+          sameSite: "lax",
+          path: "/",
+          expires: new Date(0), // set it to as old as possible!!
+          secure: true,
+        });
+      context.locals.bareServer = defaultBareServer;
+      return false;
+    }
+  };
+  context.locals.setBareServer(context.cookies.get("bareServer")?.value);
+
+  // saves the wispServer or delete it
+  context.locals.setWispServer = (newWispServer) => {
+    let validWispServer = typeof newWispServer === "string";
+
+    if (validWispServer)
+      try {
+        new URL(newWispServer as string);
+      } catch (err) {}
+
+    if (validWispServer) {
+      context.cookies.set("wispServer", newWispServer as string, {
+        domain: context.url.hostname,
+        sameSite: "lax",
+        path: "/",
+        maxAge: maxAgeLimit,
+        secure: true,
+      });
+      context.locals.wispServer = newWispServer as string;
+      return true;
+    } else {
+      // clear the cookie
+      if (context.cookies.has("wispServer"))
+        context.cookies.set("wispServer", "", {
+          domain: context.url.hostname,
+          sameSite: "lax",
+          path: "/",
+          expires: new Date(0), // set it to as old as possible!!
+          secure: true,
+        });
+      context.locals.wispServer = defaultWispServer;
+      return false;
+    }
+  };
+  context.locals.setWispServer(context.cookies.get("wispServer")?.value);
+
+  // expose the instance defaults so the client can reset to them (eg when
+  // toggling tor off without a full page reload)
+  context.locals.defaultBareServer = defaultBareServer;
+  context.locals.defaultWispServer = defaultWispServer;
+
+  // whether this instance offers a tor-routed proxy (config has torProxy)
+  context.locals.torAvailable = "torProxy" in appConfig;
+  // whether the client has opted into routing through tor (the "t" cookie)
+  context.locals.tor =
+    context.locals.torAvailable &&
+    context.cookies.get(torCookie)?.value === "1";
+
+  // saves the tor preference or clears it (defaults to off).
+  // while tor is on we pin bare/wisp to this instance (clearing any custom
+  // server) so traffic actually flows through our tor-routed servers.
+  context.locals.setTor = (enabled) => {
+    const on =
+      context.locals.torAvailable && (enabled === true || enabled === "1");
+
+    if (on) {
+      context.cookies.set(torCookie, "1", {
+        domain: context.url.hostname,
+        sameSite: "lax",
+        path: "/",
+        maxAge: maxAgeLimit,
+        secure: true,
+      });
+      context.locals.tor = true;
+      // drop any custom bare/wisp server so we use the routed defaults
+      context.locals.setBareServer(undefined);
+      context.locals.setWispServer(undefined);
+      return true;
+    } else {
+      // clear the cookie
+      if (context.cookies.has(torCookie))
+        context.cookies.set(torCookie, "", {
+          domain: context.url.hostname,
+          sameSite: "lax",
+          path: "/",
+          expires: new Date(0), // set it to as old as possible!!
+          secure: true,
+        });
+      context.locals.tor = false;
+      return false;
+    }
+  };
+
+  // encode the cloak or delete it
+  context.locals.setCloak = (cloak) => {
+    let validCloak = typeof cloak === "object" && cloak !== null;
+
+    if (validCloak) {
+      if (typeof (cloak as AppCloak).icon !== "string") validCloak = false;
+      if (typeof (cloak as AppCloak).title !== "string") validCloak = false;
+      if (typeof (cloak as AppCloak).url !== "string") validCloak = false;
+    }
+
+    if (validCloak) {
+      context.cookies.set(
+        "cloak",
+        new URLSearchParams({ ...cloak }).toString(),
+        {
+          domain: context.url.hostname,
+          sameSite: "lax",
+          path: "/",
+          maxAge: maxAgeLimit,
+          secure: true,
+        },
+      );
+      return true;
+    } else {
+      // clear the cloak
+      if (context.cookies.has("cloak"))
+        context.cookies.set("cloak", "", {
+          domain: context.url.hostname,
+          sameSite: "lax",
+          path: "/",
+          expires: new Date(0), // as old as possible
+          secure: true,
+        });
+      return false;
+    }
+  };
+
+  // pick a random cloak on the first load
+  // don't run this on holyunb.locker so we get SEO
+  if (
+    !context.cookies.has("autoCloak") &&
+    !context.locals.isMainWebsite &&
+    ["document", "iframe"].includes(
+      context.request.headers.get("sec-fetch-dest")!,
+    )
+  ) {
+    const cloak = await getRandomCloak();
+    if (cloak) context.locals.setCloak(cloak);
+    context.locals.cloak = cloak;
+  } else {
+    const cloakCookie = context.cookies.get("cloak");
+    if (cloakCookie !== undefined) {
+      context.locals.cloak = Object.fromEntries([
+        ...new URLSearchParams(cloakCookie.value).entries(),
+      ]) as any;
+    }
+  }
+
+  // indicate that the cloak was already randomly picked
+  context.cookies.set("autoCloak", "1", {
+    domain: validCookieDomain,
+    sameSite: "lax",
+    path: "/",
+    maxAge: maxAgeLimit,
+    secure: true,
+    httpOnly: true,
+  });
+
+  // saves the theme or delete it
+  context.locals.setTheme = (newTheme) => {
+    const validTheme =
+      typeof newTheme === "string" && ["day", "night"].includes(newTheme);
+
+    if (validTheme) {
+      context.cookies.set("theme", newTheme as string, {
+        domain: context.url.hostname,
+        sameSite: "lax",
+        path: "/",
+        maxAge: maxAgeLimit,
+        secure: true,
+      });
+      context.locals.theme = newTheme as string;
+      return true;
+    } else {
+      // clear the cookie
+      if (context.cookies.has("theme"))
+        context.cookies.set("theme", "", {
+          domain: context.url.hostname,
+          sameSite: "lax",
+          path: "/",
+          expires: new Date(0), // set it to as old as possible!!
+          secure: true,
+        });
+      context.locals.theme = "day"; // default is day
+      return false;
+    }
+  };
+
+  context.locals.setTheme(context.cookies.get("theme")?.value);
+
+  // saves the theme or delete it
+  context.locals.setProxyTransport = (newProxyTransport) => {
+    const validTransport =
+      typeof newProxyTransport === "string" &&
+      ["epoxy", "bare"].includes(newProxyTransport);
+
+    if (validTransport) {
+      context.cookies.set("trans", newProxyTransport as string, {
+        domain: context.url.hostname,
+        sameSite: "lax",
+        path: "/",
+        maxAge: maxAgeLimit,
+        secure: true,
+      });
+      context.locals.proxyTransport = newProxyTransport as string;
+      return true;
+    } else {
+      // clear the cookie
+      if (context.cookies.has("trans"))
+        context.cookies.set("trans", "", {
+          domain: context.url.hostname,
+          sameSite: "lax",
+          path: "/",
+          expires: new Date(0), // set it to as old as possible!!
+          secure: true,
+        });
+      context.locals.proxyTransport = "epoxy"; // default is epoxy
+      return false;
+    }
+  };
+
+  context.locals.setProxyTransport(context.cookies.get("trans")?.value);
+
+  // saves the proxy engine or delete it
+  context.locals.setProxyEngine = (newProxyEngine) => {
+    const validEngine =
+      typeof newProxyEngine === "string" &&
+      ["uv", "sj"].includes(newProxyEngine);
+
+    if (validEngine) {
+      context.cookies.set("engine", newProxyEngine as string, {
+        domain: context.url.hostname,
+        sameSite: "lax",
+        path: "/",
+        maxAge: maxAgeLimit,
+        secure: true,
+      });
+      context.locals.proxyEngine = newProxyEngine as string;
+      return true;
+    } else {
+      // clear the cookie
+      if (context.cookies.has("engine"))
+        context.cookies.set("engine", "", {
+          domain: context.url.hostname,
+          sameSite: "lax",
+          path: "/",
+          expires: new Date(0), // set it to as old as possible!!
+          secure: true,
+        });
+      context.locals.proxyEngine = "uv"; // default is uv
+      return false;
+    }
+  };
+
+  context.locals.setProxyEngine(context.cookies.get("engine")?.value);
+
+  // saves the adblock preference or clears it (defaults to off)
+  context.locals.setAdblock = (newAdblock) => {
+    const enabled = newAdblock === true || newAdblock === "1";
+
+    if (enabled) {
+      context.cookies.set("adblock", "1", {
+        domain: context.url.hostname,
+        sameSite: "lax",
+        path: "/",
+        maxAge: maxAgeLimit,
+        secure: true,
+      });
+      context.locals.adblock = true;
+      return true;
+    } else {
+      // clear the cookie
+      if (context.cookies.has("adblock"))
+        context.cookies.set("adblock", "", {
+          domain: context.url.hostname,
+          sameSite: "lax",
+          path: "/",
+          expires: new Date(0), // set it to as old as possible!!
+          secure: true,
+        });
+      context.locals.adblock = true;
+      return false;
+    }
+  };
+
+  context.locals.setAdblock(context.cookies.get("adblock")?.value);
+
+  // saves the noscript preference or clears it (defaults to off).
+  // strips scripts from proxied pages via the service worker.
+  context.locals.setNoscript = (newNoscript) => {
+    const enabled = newNoscript === true || newNoscript === "1";
+
+    if (enabled) {
+      context.cookies.set("noscript", "1", {
+        domain: context.url.hostname,
+        sameSite: "lax",
+        path: "/",
+        maxAge: maxAgeLimit,
+        secure: true,
+      });
+      context.locals.noscript = true;
+      return true;
+    } else {
+      // clear the cookie
+      if (context.cookies.has("noscript"))
+        context.cookies.set("noscript", "", {
+          domain: context.url.hostname,
+          sameSite: "lax",
+          path: "/",
+          expires: new Date(0), // set it to as old as possible!!
+          secure: true,
+        });
+      context.locals.noscript = false;
+      return false;
+    }
+  };
+
+  context.locals.setNoscript(context.cookies.get("noscript")?.value);
+
+  // saves the search engine or delete it
+  context.locals.setSearchEngine = (newSearchEngine) => {
+    let validSearchEngine = false;
+    if (typeof newSearchEngine === "string")
+      newSearchEngine = parseInt(newSearchEngine);
+    if (
+      typeof newSearchEngine === "number" &&
+      !isNaN(newSearchEngine) &&
+      newSearchEngine >= 0 &&
+      newSearchEngine < engines.length
+    )
+      validSearchEngine = true;
+    if (validSearchEngine) {
+      context.cookies.set("srch", (newSearchEngine as number).toString(), {
+        domain: context.url.hostname,
+        sameSite: "lax",
+        path: "/",
+        maxAge: maxAgeLimit,
+        secure: true,
+      });
+      context.locals.searchEngine = newSearchEngine as number;
+      return true;
+    } else {
+      // clear the cookie
+      if (context.cookies.has("srch"))
+        context.cookies.set("srch", "", {
+          domain: context.url.hostname,
+          sameSite: "lax",
+          path: "/",
+          expires: new Date(0), // set it to as old as possible!!
+          secure: true,
+        });
+
+      // default proxy search engine
+      // 0 = google
+      // 1 = duckduckgo
+      // 2 = bing
+      // 3 = wikipedia
+      // 4 = reddit
+      // 5 = hacker news
+      context.locals.searchEngine = 1;
+      return false;
+    }
+  };
+  context.locals.setSearchEngine(context.cookies.get("srch")?.value);
+
+  // proxy mode
+  context.locals.proxyMode = "embedded";
+  const proxyMode = context.cookies.get("prx")?.value;
+  if (
+    proxyMode !== undefined &&
+    ["embedded", "redirect", "about:blank"].includes(proxyMode)
+  )
+    context.locals.proxyMode = proxyMode;
+
+  if (!userSystemEnabled) {
+    if (
+      context.url.pathname.startsWith("/pro/") ||
+      context.url.pathname.startsWith("/admin/")
+    )
+      return new Response("User system is disabled", { status: 400 });
+    // don't bother loading logic for account stuff
+    return next();
+  }
+
+  context.locals.setSession = (secret, staySignedIn = true) => {
+    // set the session
+    if (typeof secret === "string") {
+      context.cookies.set("session", secret, {
+        domain: context.url.hostname,
+        sameSite: "lax",
+        path: "/",
+        maxAge: staySignedIn ? maxAgeLimit : undefined,
+        secure: true,
+        httpOnly: true,
+      });
+
+      return true;
+    } else {
+      // clear the session
+      if (context.cookies.has("session"))
+        context.cookies.set("session", "", {
+          domain: context.url.hostname,
+          sameSite: "lax",
+          path: "/",
+          expires: new Date(0), // set it to as old as possible!!
+          secure: true,
+          httpOnly: true,
+        });
+
+      context.cookies.set("session", "", {
+        domain: context.url.hostname,
+        sameSite: "lax",
+        path: "/pro/",
+        expires: new Date(0),
+        secure: true,
+        httpOnly: true,
+      });
+
+      return false;
+    }
+  };
+
+  if (!accountsEnabled && context.url.pathname.startsWith("/pro/"))
+    return new Response("Account system is disabled", { status: 400 });
+
+  const cookie = context.cookies.get("session")?.value;
+
+  if (cookie) {
+    const session = (
+      await db.query<m.SessionModel>(
+        `SELECT * FROM session WHERE secret = $1;`,
+        [cookie],
+      )
+    ).rows[0];
+
+    if (session) {
+      const user = (
+        await db.query<m.UserModel>(`SELECT * FROM users WHERE id = $1;`, [
+          session.user_id,
+        ])
+      ).rows[0] as CtxUser;
+
+      if (!user) {
+        console.error(
+          "session had a reference to a non existant user...,erm what",
+        );
+        context.locals.setSession();
+      } else {
+        user.session = session;
+        context.locals.user = user;
+
+        // check if discord account data is older than one day
+        if (
+          user.discord_updated !== null &&
+          Date.now() - user.discord_updated.getTime() > 60e3 * 60 * 24
+        ) {
+          console.log("discord data out of date");
+          const memberRes = await fetch(
+            `https://discord.com/api/v10/guilds/${appConfig.discord.guildId}/members/${user.discord_id}`,
+            {
+              headers: {
+                authorization: `Bot ${appConfig.discord.botToken}`,
+              },
+            },
+          );
+
+          switch (memberRes.status) {
+            case 200:
+              {
+                const data = (await memberRes.json()) as {
+                  user: DiscordUserData;
+                };
+                await linkDiscord(user, data.user);
+                console.log("fetched new discord data");
+              }
+              break;
+            case 404:
+              console.error("Member no longer in guild");
+              await unlinkDiscord(user);
+              break;
+            default:
+              console.error("Bad discord response:", memberRes.status);
+              console.error(await memberRes.text());
+              break;
+          }
+
+          if (!memberRes.ok) {
+            console.error("error updating guild member:", memberRes.status);
+          }
+        }
+
+        // don't set it again
+        // respect whether the user picked to stay signed in or not
+        // context.locals.setSession(cookie);
+      }
+    } else {
+      // invalid
+      context.locals.setSession();
+    }
+  }
+
+  Object.defineProperty(context.locals, "ip", {
+    get: () => {
+      return context.clientAddress;
+    },
+  });
+  // context.request.headers.get("cf-connecting-ip") || context.clientAddress;
+
+  context.locals.acc = {
+    isPremium: () => {
+      const { user } = context.locals;
+      if (!user) return false;
+      return Date.now() < user.paid_until.getTime();
+    },
+    isBanned: async () => {
+      if (context.locals.user) {
+        return await isUserBanned(context.locals.user.id);
+      }
+    },
+    needsToVerifyTotp: () => {
+      const { user } = context.locals;
+      if (!user) return false;
+      return user.totp_enabled !== null && !user.session.totp_verified;
+    },
+    toDash: () => context.redirect("/pro/dashboard", 302),
+    toBan: () => context.redirect("/pro/ban", 302),
+    toPricing: () => context.redirect("/pro/tiers", 302),
+    toLogin: () =>
+      context.redirect(
+        context.url.pathname === "/pro/signup"
+          ? "/pro/signup"
+          : `/pro/?to=${encodeURIComponent(
+              context.url.pathname + context.url.search,
+            )}`,
+        307,
+      ),
+    toSignup: () =>
+      context.redirect(
+        context.url.pathname === "/pro/"
+          ? "/pro/"
+          : `/pro/?to=${encodeURIComponent(
+              context.url.pathname + context.url.search,
+            )}`,
+        307,
+      ),
+    toVerifyEmail: () => context.redirect("/pro/verify-email", 302),
+    toVerifyNewEmail: () => context.redirect("/pro/verify-new-email", 302),
+    toVerifyTotp: () => context.redirect("/pro/verify-totp", 302),
+  };
+
+  return next();
+});

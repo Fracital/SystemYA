@@ -1,0 +1,214 @@
+{
+  "source": "itstime.zip SystemYA/theatre.html",
+  "sprite": "theatre.4cf739e3dd20f770bb30.webp",
+  "tile_size": [
+    200,
+    200
+  ],
+  "cells": [
+    {
+      "category": "Social",
+      "index": 0,
+      "offset_x": 0,
+      "offset_y": -1400
+    },
+    {
+      "category": "Social",
+      "index": 1,
+      "offset_x": -400,
+      "offset_y": -1400
+    },
+    {
+      "category": "Social",
+      "index": 2,
+      "offset_x": -200,
+      "offset_y": -1400
+    },
+    {
+      "category": "Social",
+      "index": 3,
+      "offset_x": -600,
+      "offset_y": -1400
+    },
+    {
+      "category": "HTML5",
+      "index": 0,
+      "offset_x": -200,
+      "offset_y": -200
+    },
+    {
+      "category": "HTML5",
+      "index": 1,
+      "offset_x": 0,
+      "offset_y": -200
+    },
+    {
+      "category": "HTML5",
+      "index": 2,
+      "offset_x": -400,
+      "offset_y": -200
+    },
+    {
+      "category": "Ports",
+      "index": 0,
+      "offset_x": 0,
+      "offset_y": -400
+    },
+    {
+      "category": "Ports",
+      "index": 1,
+      "offset_x": -200,
+      "offset_y": -400
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 0,
+      "offset_x": 0,
+      "offset_y": -1200
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 1,
+      "offset_x": -200,
+      "offset_y": -1200
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 2,
+      "offset_x": -400,
+      "offset_y": -1200
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 3,
+      "offset_x": 0,
+      "offset_y": 0
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 4,
+      "offset_x": 0,
+      "offset_y": 0
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 5,
+      "offset_x": 0,
+      "offset_y": 0
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 6,
+      "offset_x": 0,
+      "offset_y": 0
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 7,
+      "offset_x": 0,
+      "offset_y": 0
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 8,
+      "offset_x": 0,
+      "offset_y": 0
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 9,
+      "offset_x": 0,
+      "offset_y": 0
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 10,
+      "offset_x": 0,
+      "offset_y": 0
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 11,
+      "offset_x": 0,
+      "offset_y": 0
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 12,
+      "offset_x": 0,
+      "offset_y": 0
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 13,
+      "offset_x": 0,
+      "offset_y": 0
+    },
+    {
+      "category": "Game Boy Advance",
+      "index": 14,
+      "offset_x": 0,
+      "offset_y": 0
+    },
+    {
+      "category": "Sega Genesis",
+      "index": 0,
+      "offset_x": 0,
+      "offset_y": -1000
+    },
+    {
+      "category": "Sega Genesis",
+      "index": 1,
+      "offset_x": -200,
+      "offset_y": -1000
+    },
+    {
+      "category": "Sega Genesis",
+      "index": 2,
+      "offset_x": -400,
+      "offset_y": -1000
+    },
+    {
+      "category": "Nintendo Entertainment System",
+      "index": 0,
+      "offset_x": 0,
+      "offset_y": -800
+    },
+    {
+      "category": "Nintendo Entertainment System",
+      "index": 1,
+      "offset_x": -200,
+      "offset_y": -800
+    },
+    {
+      "category": "Nintendo Entertainment System",
+      "index": 2,
+      "offset_x": -400,
+      "offset_y": -800
+    },
+    {
+      "category": "Unity",
+      "index": 0,
+      "offset_x": 0,
+      "offset_y": -600
+    },
+    {
+      "category": "Unity",
+      "index": 1,
+      "offset_x": -200,
+      "offset_y": -600
+    },
+    {
+      "category": "Unity",
+      "index": 2,
+      "offset_x": -400,
+      "offset_y": -600
+    },
+    {
+      "category": "Unity",
+      "index": 3,
+      "offset_x": -600,
+      "offset_y": -600
+    }
+  ]
+}

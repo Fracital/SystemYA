@@ -1,0 +1,140 @@
+{
+  "capture": "2022-05-26T15:40:12Z",
+  "source": "itstime.zip:SystemYA/theatre_files/main.eb81df9c.css",
+  "assets": [
+    {
+      "file": "MaterialIcons-Regular.24a6611c28f373a0e1d7.ttf",
+      "role": "font",
+      "original_url": "https://sys32.dev/static/media/MaterialIcons-Regular.24a6611c28f373a0e1d7.ttf",
+      "wayback_url": "https://web.archive.org/web/20220526154012im_/https://sys32.dev/static/media/MaterialIcons-Regular.24a6611c28f373a0e1d7.ttf",
+      "local_path": "public/static/media/MaterialIcons-Regular.24a6611c28f373a0e1d7.ttf",
+      "present_in_user_archives": false,
+      "verified_original_bytes": false
+    },
+    {
+      "file": "MaterialIcons-Regular.28d729e6d7a187ee4978.eot",
+      "role": "font",
+      "original_url": "https://sys32.dev/static/media/MaterialIcons-Regular.28d729e6d7a187ee4978.eot",
+      "wayback_url": "https://web.archive.org/web/20220526154012im_/https://sys32.dev/static/media/MaterialIcons-Regular.28d729e6d7a187ee4978.eot",
+      "local_path": "public/static/media/MaterialIcons-Regular.28d729e6d7a187ee4978.eot",
+      "present_in_user_archives": false,
+      "verified_original_bytes": false
+    },
+    {
+      "file": "MaterialIcons-Regular.824b570fb059ee0a44a9.woff",
+      "role": "font",
+      "original_url": "https://sys32.dev/static/media/MaterialIcons-Regular.824b570fb059ee0a44a9.woff",
+      "wayback_url": "https://web.archive.org/web/20220526154012im_/https://sys32.dev/static/media/MaterialIcons-Regular.824b570fb059ee0a44a9.woff",
+      "local_path": "public/static/media/MaterialIcons-Regular.824b570fb059ee0a44a9.woff",
+      "present_in_user_archives": false,
+      "verified_original_bytes": false
+    },
+    {
+      "file": "MaterialIcons-Regular.97b9b1857a2af7322eba.woff2",
+      "role": "font",
+      "original_url": "https://sys32.dev/static/media/MaterialIcons-Regular.97b9b1857a2af7322eba.woff2",
+      "wayback_url": "https://web.archive.org/web/20220526154012im_/https://sys32.dev/static/media/MaterialIcons-Regular.97b9b1857a2af7322eba.woff2",
+      "local_path": "public/static/media/MaterialIcons-Regular.97b9b1857a2af7322eba.woff2",
+      "present_in_user_archives": true,
+      "verified_original_bytes": true,
+      "status": "recovered_from_wayback_user_upload",
+      "sha256": "273150c47a3c72fac516c64dbc2609311a03456037a0ff70ee1f1c85307eaa1a",
+      "size_bytes": 124404
+    },
+    {
+      "file": "dark.8cbd0429f3449df8c19c.svg",
+      "role": "dark-grid",
+      "original_url": "https://sys32.dev/static/media/dark.8cbd0429f3449df8c19c.svg",
+      "wayback_url": "https://web.archive.org/web/20220526154012im_/https://sys32.dev/static/media/dark.8cbd0429f3449df8c19c.svg",
+      "local_path": "public/static/media/dark.8cbd0429f3449df8c19c.svg",
+      "present_in_user_archives": true,
+      "verified_original_bytes": true,
+      "status": "recovered_from_wayback_user_upload",
+      "sha256": "d312a22d5f042b50a4c64ab724a4add39d6f7e3d3583a7994931a913c0bb892c",
+      "size_bytes": 456
+    },
+    {
+      "file": "light.2d95225a7bb6ff1db853.svg",
+      "role": "light-grid",
+      "original_url": "https://sys32.dev/static/media/light.2d95225a7bb6ff1db853.svg",
+      "wayback_url": "https://web.archive.org/web/20220526154012im_/https://sys32.dev/static/media/light.2d95225a7bb6ff1db853.svg",
+      "local_path": "public/static/media/light.2d95225a7bb6ff1db853.svg",
+      "present_in_user_archives": true,
+      "verified_original_bytes": true,
+      "status": "recovered_from_wayback_user_upload",
+      "sha256": "50da13c58abdf1fa930f7165c4721785f8cac73e8be45252dddddc8e2a5cc2a5",
+      "size_bytes": 429
+    },
+    {
+      "file": "segoe-ui-100.3f00cbd97beb52974149.woff2",
+      "role": "font",
+      "original_url": "https://sys32.dev/static/media/segoe-ui-100.3f00cbd97beb52974149.woff2",
+      "wayback_url": "https://web.archive.org/web/20220526154012im_/https://sys32.dev/static/media/segoe-ui-100.3f00cbd97beb52974149.woff2",
+      "local_path": "public/static/media/segoe-ui-100.3f00cbd97beb52974149.woff2",
+      "present_in_user_archives": false,
+      "verified_original_bytes": false
+    },
+    {
+      "file": "segoe-ui-200.9d7fc8603d2ad4bbc468.woff2",
+      "role": "font",
+      "original_url": "https://sys32.dev/static/media/segoe-ui-200.9d7fc8603d2ad4bbc468.woff2",
+      "wayback_url": "https://web.archive.org/web/20220526154012im_/https://sys32.dev/static/media/segoe-ui-200.9d7fc8603d2ad4bbc468.woff2",
+      "local_path": "public/static/media/segoe-ui-200.9d7fc8603d2ad4bbc468.woff2",
+      "present_in_user_archives": false,
+      "verified_original_bytes": false
+    },
+    {
+      "file": "segoe-ui-400.1a84982fb6140613fadc.woff2",
+      "role": "font",
+      "original_url": "https://sys32.dev/static/media/segoe-ui-400.1a84982fb6140613fadc.woff2",
+      "wayback_url": "https://web.archive.org/web/20220526154012im_/https://sys32.dev/static/media/segoe-ui-400.1a84982fb6140613fadc.woff2",
+      "local_path": "public/static/media/segoe-ui-400.1a84982fb6140613fadc.woff2",
+      "present_in_user_archives": true,
+      "verified_original_bytes": true,
+      "status": "recovered_from_wayback_user_upload",
+      "sha256": "4f7f4afe26e71fa9ca1dac4a43b557a554a46f53251d849f07ed08a04829d74b",
+      "size_bytes": 34052
+    },
+    {
+      "file": "segoe-ui-600.c408ee083ec612e2efcf.woff2",
+      "role": "font",
+      "original_url": "https://sys32.dev/static/media/segoe-ui-600.c408ee083ec612e2efcf.woff2",
+      "wayback_url": "https://web.archive.org/web/20220526154012im_/https://sys32.dev/static/media/segoe-ui-600.c408ee083ec612e2efcf.woff2",
+      "local_path": "public/static/media/segoe-ui-600.c408ee083ec612e2efcf.woff2",
+      "present_in_user_archives": true,
+      "verified_original_bytes": false,
+      "status": "byte_for_byte_alias_from_700_based_on_shared_historical_hash",
+      "sha256": "d87d0a7a7fe2c36d1dc093bfe56e9b81b311988789dbd3b65abf811d551ef02f",
+      "size_bytes": 29388
+    },
+    {
+      "file": "segoe-ui-700.c408ee083ec612e2efcf.woff2",
+      "role": "font",
+      "original_url": "https://sys32.dev/static/media/segoe-ui-700.c408ee083ec612e2efcf.woff2",
+      "wayback_url": "https://web.archive.org/web/20220526154012im_/https://sys32.dev/static/media/segoe-ui-700.c408ee083ec612e2efcf.woff2",
+      "local_path": "public/static/media/segoe-ui-700.c408ee083ec612e2efcf.woff2",
+      "present_in_user_archives": true,
+      "verified_original_bytes": true,
+      "status": "recovered_from_wayback_user_upload",
+      "sha256": "d87d0a7a7fe2c36d1dc093bfe56e9b81b311988789dbd3b65abf811d551ef02f",
+      "size_bytes": 29388
+    },
+    {
+      "file": "theatre.4cf739e3dd20f770bb30.webp",
+      "role": "sprite",
+      "original_url": "https://sys32.dev/static/media/theatre.4cf739e3dd20f770bb30.webp",
+      "wayback_url": "https://web.archive.org/web/20220526154012im_/https://sys32.dev/static/media/theatre.4cf739e3dd20f770bb30.webp",
+      "local_path": "public/static/media/theatre.4cf739e3dd20f770bb30.webp",
+      "present_in_user_archives": true,
+      "verified_original_bytes": true,
+      "status": "recovered_from_wayback_user_upload",
+      "sha256": "5a525b5055dea581972a77ca29dc836d34fb2a8bc410b5c569360a0c74a33da9",
+      "size_bytes": 407838
+    }
+  ],
+  "limitations": [
+    "The three original graphic files and all font files were absent in itstime.zip, systemya2.zip, systemya-recovered.zip, and the previous Astro package.",
+    "Remote Wayback asset retrieval was blocked by DNS and archival access restrictions in this container.",
+    "Grid fallback SVGs are approximations, never to be confused with verified source assets."
+  ]
+}

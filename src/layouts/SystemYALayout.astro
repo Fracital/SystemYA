@@ -1,0 +1,67 @@
+---
+import { ClientRouter } from "astro:transitions";
+import "../systemya/stomp.css";
+import "../systemya/account.css";
+import { getSystemYASnapshot, type SystemYAPage } from "../systemya/snapshot";
+
+interface Props {
+  page: SystemYAPage;
+  title?: string;
+}
+
+const { page, title = "SystemYA" } = Astro.props;
+const markup = getSystemYASnapshot(page);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{title}</title>
+    <link rel="icon" type="image/png" href="/systemya-2022/favicon.png" />
+    <link rel="stylesheet" href="/systemya-2022/main.css" />
+    <script is:inline>
+      // A stale tab may request a removed hashed chunk and receive index.html.
+      window.addEventListener("vite:preloadError", (event) => {
+        event.preventDefault();
+        try {
+          const key = "systemya:chunk-reload";
+          const current = window.location.href;
+          if (sessionStorage.getItem(key) !== current) {
+            sessionStorage.setItem(key, current);
+            window.location.reload();
+          } else {
+            sessionStorage.removeItem(key);
+            window.location.assign("/");
+          }
+        } catch {
+          window.location.reload();
+        }
+      });
+    </script>
+    <ClientRouter />
+  </head>
+  <body>
+    <div
+      id="root"
+      data-page={page === "index" ? "home" : page}
+      data-theme="light"
+      data-fullscreen="0"
+      set:html={markup}
+    />
+    <section id="systemya-service" hidden aria-label="SystemYA STomp proxy">
+      <div class="service-toolbar">
+        <button type="button" id="systemya-close-service" aria-label="Close proxy">Back</button>
+        <span class="service-title" id="systemya-service-title">SystemYA</span>
+        <span class="service-status" id="systemya-service-status" role="status"></span>
+        <button type="button" id="systemya-reload-service" aria-label="Reload proxied page">Reload</button>
+        <button type="button" id="systemya-fullscreen-service" aria-label="Fullscreen">Fullscreen</button>
+      </div>
+      <iframe id="systemya-service-frame" title="SystemYA STomp browser"></iframe>
+    </section>
+    <script>
+      import "../systemya/interactions.ts";
+    </script>
+  </body>
+</html>

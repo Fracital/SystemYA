@@ -1,0 +1,361 @@
+{
+  "source_inputs": [
+    "/home/user/Downloads/SystemYA/SystemYA-bundle-recovery-tools/itstime.zip",
+    "/home/user/Downloads/SystemYA/SystemYA-bundle-recovery-tools/systemya2.zip"
+  ],
+  "entries_examined": 736,
+  "js_selected": 38,
+  "unique_bundles": 31,
+  "duplicates_removed": 7,
+  "recovered_at": "2026-11-18T06:31:07.164Z",
+  "files": [
+    {
+      "sha256": "d59cfa202dcae58ff040decf6ae1d2cce886ce89570d24c47289dec8f81667ea",
+      "bytes": 193221,
+      "archive_paths": [
+        "itstime.zip:SystemYA/index_files/main.59cf0c20.js",
+        "itstime.zip:SystemYA/theatre_files/main.59cf0c20.js",
+        "itstime.zip:SystemYA/support_files/main.59cf0c20.js",
+        "itstime.zip:SystemYA/contact_files/main.59cf0c20.js",
+        "itstime.zip:SystemYA/privacy_files/main.59cf0c20.js"
+      ],
+      "original": "bundles/main.59cf0c20.js-d59cfa202dca/original.js",
+      "prepared": "bundles/main.59cf0c20.js-d59cfa202dca/prepared.js",
+      "output": "bundles/main.59cf0c20.js-d59cfa202dca/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "9167d28435953bf273a5b98d51e046599dd3dc685ccd1eebdf0aa01982835e86",
+      "bytes": 229078,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/static/js/main.8a92d525.js",
+        "systemya2.zip:public/legacy/origin/sys32.dev/static/js/main.8a92d525.js"
+      ],
+      "original": "bundles/main.8a92d525.js-9167d2843595/original.js",
+      "prepared": null,
+      "output": "bundles/main.8a92d525.js-9167d2843595/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "9058ad2d5f0568fba4c51e728c0744c49b04d4b03192cc2ed45cd6ad15288bd9",
+      "bytes": 3595,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/static/js/120.d80594db.chunk.js"
+      ],
+      "original": "bundles/120.d80594db.chunk.js-9058ad2d5f05/original.js",
+      "prepared": null,
+      "output": "bundles/120.d80594db.chunk.js-9058ad2d5f05/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "c80149efce9effb89b87f1ab2572bd3bce54bcb878321795ffe927fa33727fe3",
+      "bytes": 4657,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/static/js/125.29be8d15.chunk.js"
+      ],
+      "original": "bundles/125.29be8d15.chunk.js-c80149efce9e/original.js",
+      "prepared": null,
+      "output": "bundles/125.29be8d15.chunk.js-c80149efce9e/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "506627330ef4783faf930fc4349ee45996ab67b9d29608a5dd535f7e6339678e",
+      "bytes": 1553,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/static/js/326.6a18ed1e.chunk.js"
+      ],
+      "original": "bundles/326.6a18ed1e.chunk.js-506627330ef4/original.js",
+      "prepared": null,
+      "output": "bundles/326.6a18ed1e.chunk.js-506627330ef4/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "10ed619bddc4e55c28359051d95a54d760435e6c3f28c69dce6130bf8ff83234",
+      "bytes": 3972,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/static/js/372.b61d9907.chunk.js"
+      ],
+      "original": "bundles/372.b61d9907.chunk.js-10ed619bddc4/original.js",
+      "prepared": null,
+      "output": "bundles/372.b61d9907.chunk.js-10ed619bddc4/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "40fd38c4acda4a20006adab7a0685495898feefd1117ff92374088d0d35673b3",
+      "bytes": 8751,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/static/js/552.d642dfff.chunk.js"
+      ],
+      "original": "bundles/552.d642dfff.chunk.js-40fd38c4acda/original.js",
+      "prepared": null,
+      "output": "bundles/552.d642dfff.chunk.js-40fd38c4acda/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "d7d15b344c20b1a098c2eaf46676225665dbd2018d511ea33fdb959cbbefb253",
+      "bytes": 1771,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/static/js/757.99fcbaf7.chunk.js"
+      ],
+      "original": "bundles/757.99fcbaf7.chunk.js-d7d15b344c20/original.js",
+      "prepared": null,
+      "output": "bundles/757.99fcbaf7.chunk.js-d7d15b344c20/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "2589f3ea488e0661c175d76668519e4120468ee60444a17f77793622da93a083",
+      "bytes": 6374,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/static/js/932.97a16dc2.chunk.js"
+      ],
+      "original": "bundles/932.97a16dc2.chunk.js-2589f3ea488e/original.js",
+      "prepared": null,
+      "output": "bundles/932.97a16dc2.chunk.js-2589f3ea488e/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "965e380b5328a36b17b61196eec2de4f66a81439309cb654cffcddc8ad37485c",
+      "bytes": 191897,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/static/js/main.59cf0c20.js"
+      ],
+      "original": "bundles/main.59cf0c20.js-965e380b5328/original.js",
+      "prepared": null,
+      "output": "bundles/main.59cf0c20.js-965e380b5328/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "1dc34078234637e324cbee01ae53dcfeea478cf999e677fbf62a9b2dc44670ff",
+      "bytes": 40292,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/app/js/main-d28c931833.js"
+      ],
+      "original": "bundles/main-d28c931833.js-1dc340782346/original.js",
+      "prepared": null,
+      "output": "bundles/main-d28c931833.js-1dc340782346/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "0010cdd8a658212354b9e85fa60ab1ea7dc79eb92baa1b321406f9aa2cb4aa4e",
+      "bytes": 14576,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/assets/index-b74c2cbb94.js"
+      ],
+      "original": "bundles/index-b74c2cbb94.js-0010cdd8a658/original.js",
+      "prepared": null,
+      "output": "bundles/index-b74c2cbb94.js-0010cdd8a658/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "abc4e15deebad368622ac17c21b0c980cf95a2940b1058629230604d5a9085bf",
+      "bytes": 4101,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/assets/js/home.js"
+      ],
+      "original": "bundles/home.js-abc4e15deeba/original.js",
+      "prepared": null,
+      "output": "bundles/home.js-abc4e15deeba/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "63f34c80e7682f06981b3c22d81c9c34a67f887991746dd071deb1f6a29554d1",
+      "bytes": 33004,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/assets/js/home-8a9868d414.js"
+      ],
+      "original": "bundles/home-8a9868d414.js-63f34c80e768/original.js",
+      "prepared": null,
+      "output": "bundles/home-8a9868d414.js-63f34c80e768/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "f7f6a5894f1d19ddad6fa392b2ece2c5e578cbf7da4ea805b6885eb6985b6e3d",
+      "bytes": 89476,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/assets/js/jquery-3.5.1.min.js"
+      ],
+      "original": "bundles/jquery-3.5.1.min.js-f7f6a5894f1d/original.js",
+      "prepared": null,
+      "output": "bundles/jquery-3.5.1.min.js-f7f6a5894f1d/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "fc1d5f2caa1b59f13aa9e2fd605cdb5316f53b22e33f849ed97ceaab327e70f7",
+      "bytes": 1860,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/assets/js/nav-9791fb49a7.js"
+      ],
+      "original": "bundles/nav-9791fb49a7.js-fc1d5f2caa1b/original.js",
+      "prepared": null,
+      "output": "bundles/nav-9791fb49a7.js-fc1d5f2caa1b/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "888676b4e2fa08d28c954be7cd9990ff9a2df20e6e91ae1d7907c6edeeda97ff",
+      "bytes": 2741,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/assets/js/page-875cea48f7.js"
+      ],
+      "original": "bundles/page-875cea48f7.js-888676b4e2fa/original.js",
+      "prepared": null,
+      "output": "bundles/page-875cea48f7.js-888676b4e2fa/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "faee7815a5fd27e938d1e01c8392b66332024908eb118048f608eee671371df6",
+      "bytes": 23364,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/assets/js/particles.min.js"
+      ],
+      "original": "bundles/particles.min.js-faee7815a5fd/original.js",
+      "prepared": null,
+      "output": "bundles/particles.min.js-faee7815a5fd/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "133e641ec48cdd61d394da0eb43daea52dba8bb2fbc2d44cc684c5c11750fadd",
+      "bytes": 2902,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/sys32.dev/assets/js/prox-6cb86263ea.js"
+      ],
+      "original": "bundles/prox-6cb86263ea.js-133e641ec48c/original.js",
+      "prepared": null,
+      "output": "bundles/prox-6cb86263ea.js-133e641ec48c/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "25ab93b0115bdc68d727bfd0386f6773d173c1d6717ba5996fd68a8739b1e68e",
+      "bytes": 22957,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/forum.sys32.dev/assets/forum-en.js",
+        "systemya2.zip:src/legacy/2023/js/raw/forum.sys32.dev/assets/forum-en-f45f9bd427.js"
+      ],
+      "original": "bundles/forum-en.js-25ab93b0115b/original.js",
+      "prepared": null,
+      "output": "bundles/forum-en.js-25ab93b0115b/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "66aa750df3ec195cff06d1dbe751d6e7cf9dcade308130fbf613198295a402f7",
+      "bytes": 27449,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/forum.sys32.dev/assets/forum-en-258b2a6840.js"
+      ],
+      "original": "bundles/forum-en-258b2a6840.js-66aa750df3ec/original.js",
+      "prepared": null,
+      "output": "bundles/forum-en-258b2a6840.js-66aa750df3ec/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "cd06e8ab244b8e25feff001fa4805ed050f4dda5eb4ca887b6fa5023dec750e7",
+      "bytes": 29429,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/forum.sys32.dev/assets/forum-en-60b7a2b384.js"
+      ],
+      "original": "bundles/forum-en-60b7a2b384.js-cd06e8ab244b/original.js",
+      "prepared": null,
+      "output": "bundles/forum-en-60b7a2b384.js-cd06e8ab244b/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "a40198fd0327d5685cf5c679f9397388e9047b516cdaca1b71ebbcc6508b3981",
+      "bytes": 630212,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/forum.sys32.dev/assets/forum.js",
+        "systemya2.zip:src/legacy/2023/js/raw/forum.sys32.dev/assets/forum-c560784976.js"
+      ],
+      "original": "bundles/forum.js-a40198fd0327/original.js",
+      "prepared": null,
+      "output": "bundles/forum.js-a40198fd0327/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "645021ec00a68c076c0ae5bf3130b30093dab269d37d96ce93d6a920e6e0cb5d",
+      "bytes": 671928,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/forum.sys32.dev/assets/forum-4a3dd402ad.js"
+      ],
+      "original": "bundles/forum-4a3dd402ad.js-645021ec00a6/original.js",
+      "prepared": null,
+      "output": "bundles/forum-4a3dd402ad.js-645021ec00a6/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "db196c685c06e44082047962da7b7b91a5831eef9ae6ab920d8310184bde632e",
+      "bytes": 702165,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/forum.sys32.dev/assets/forum-a4b6f35041.js"
+      ],
+      "original": "bundles/forum-a4b6f35041.js-db196c685c06/original.js",
+      "prepared": null,
+      "output": "bundles/forum-a4b6f35041.js-db196c685c06/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "3ff2449e9eae374a569b1bde75005df0f49c3efd382d75798a131b723095c19a",
+      "bytes": 1998,
+      "archive_paths": [
+        "systemya2.zip:src/legacy/2023/js/raw/www.sys32.dev/assets/js/page.js"
+      ],
+      "original": "bundles/page.js-3ff2449e9eae/original.js",
+      "prepared": null,
+      "output": "bundles/page.js-3ff2449e9eae/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "d870b7e29b262aa960bc1eec4367e300555046e85b7d9b3fe5eb667267025d89",
+      "bytes": 1140,
+      "archive_paths": [
+        "systemya2.zip:public/legacy/adapter.js"
+      ],
+      "original": "bundles/adapter.js-d870b7e29b26/original.js",
+      "prepared": null,
+      "output": "bundles/adapter.js-d870b7e29b26/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "a4ef73601a6552d55503bcbd9b6cd23fc0c33fa075f8efe724cddd4e3ee55542",
+      "bytes": 16691,
+      "archive_paths": [
+        "systemya2.zip:public/legacy/origin/static.cloudflareinsights.com/beacon.min.js/vb26e4fa9e5134444860be286fd8771851679335129114.js"
+      ],
+      "original": "bundles/vb26e4fa9e5134444860be286fd8771851679335129114.js-a4ef73601a65/original.js",
+      "prepared": null,
+      "output": "bundles/vb26e4fa9e5134444860be286fd8771851679335129114.js-a4ef73601a65/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "b4c4f900a1be2a8e40b0a7e642ae7d4be6db6cf88e882b46a523be947e85d2bc",
+      "bytes": 425,
+      "archive_paths": [
+        "systemya2.zip:public/sw.js"
+      ],
+      "original": "bundles/sw.js-b4c4f900a1be/original.js",
+      "prepared": null,
+      "output": "bundles/sw.js-b4c4f900a1be/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "294eb09722b673e03b4fe733c49a164e9f3417dc954d1ce6b1469ad302d41753",
+      "bytes": 2936,
+      "archive_paths": [
+        "systemya2.zip:server.mjs"
+      ],
+      "original": "bundles/server.mjs-294eb09722b6/original.js",
+      "prepared": null,
+      "output": "bundles/server.mjs-294eb09722b6/webcrack",
+      "status": "ok"
+    },
+    {
+      "sha256": "e7119ebdba5a662e025e593cdce62995a5a96bdd18e698ac87c63b20de6524eb",
+      "bytes": 330,
+      "archive_paths": [
+        "systemya2.zip:astro.config.mjs"
+      ],
+      "original": "bundles/astro.config.mjs-e7119ebdba5a/original.js",
+      "prepared": null,
+      "output": "bundles/astro.config.mjs-e7119ebdba5a/webcrack",
+      "status": "ok"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "path": "scripts/games.js",
+    "sha256": "8a0387685de90b96ca13d19420668eb63a956878e0c866026f773d521b59163d",
+    "status": "copied unchanged from supplied website2-master.zip"
+  },
+  {
+    "path": "scripts/thumbnails.ts",
+    "sha256": "e8991e3cebe0af047cb811f19dca0cd2ddb57a00a518cd9089785cb1beee0eaf",
+    "status": "copied unchanged from supplied website2-master.zip"
+  },
+  {
+    "path": "scripts/fetch-adblock.js",
+    "sha256": "b507363da4a0a42d2708d39b9be715bcdeab38777e3c733afca6e043c9bcdfd8",
+    "status": "copied unchanged from supplied website2-master.zip"
+  },
+  {
+    "path": "scripts/fetch-cloaks.js",
+    "sha256": "1bbd72ae5d66023f103636a7399d36db3f1cfb7485bf88be4cfc06a3851cce89",
+    "status": "copied unchanged from supplied website2-master.zip"
+  },
+  {
+    "path": "sdk/build.mjs",
+    "sha256": "3e4fd282936c147ad29c6759e36d57b4c94fc2e66610dddf259db55c746b591f",
+    "status": "copied unchanged from supplied website2-master.zip"
+  },
+  {
+    "path": "obfuscator.mjs",
+    "sha256": "82718723510fbf8476eb02284e4a3f374f6755337f26b207e64c3d4ce0d79d02",
+    "status": "copied unchanged from supplied website2-master.zip"
+  },
+  {
+    "path": "svgmin.mjs",
+    "sha256": "86cd8eba7801b6a35bd6eb0ab88998701fc3ea3ec1badc3113c7d4f6515daaf8",
+    "status": "copied unchanged from supplied website2-master.zip"
+  },
+  {
+    "path": "dbSeed.js",
+    "sha256": "12cf79e29eada5be148439a1d0c4f4a59d03da053e85ff467f1ea1b0b5ad7a2a",
+    "status": "copied unchanged from supplied website2-master.zip"
+  }
+]

@@ -1,0 +1,84 @@
+---
+import themeStyles from "@styles/ThemeElements.module.scss";
+import styles from "@styles/Banner.module.scss";
+// a really simple wrapper wrapper for the prettybanner element
+// part of the subscriber css
+
+interface Props {
+  id?: string;
+  error?: string;
+  success?: string;
+  dismissable?: boolean;
+}
+
+const { id, error, success, dismissable = false } = Astro.props;
+
+function markdown(content: string) {
+  return content.replace(
+    /\[(.*?)\]\((.*?)\)/g,
+    (_, name, href) =>
+      `<a href='${href}' class='${themeStyles.themeLink}'>${name}</a>`
+  );
+}
+---
+
+{
+  success && (
+    <p
+      id={id}
+      class={styles.prettyBanner}
+      data-pretty-banner
+      data-success
+      data-dismissable={dismissable ? "" : undefined}
+    >
+      <span set:text={markdown(success)} />
+      {dismissable && (
+        <button
+          type="button"
+          class={styles.close}
+          data-banner-close
+          aria-label="Dismiss"
+        >
+          &times;
+        </button>
+      )}
+    </p>
+  )
+}
+{
+  error && (
+    <p
+      id={id}
+      class={styles.prettyBanner}
+      data-pretty-banner
+      data-error
+      data-dismissable={dismissable ? "" : undefined}
+    >
+      <span set:html={markdown(error)} />
+      {dismissable && (
+        <button
+          type="button"
+          class={styles.close}
+          data-banner-close
+          aria-label="Dismiss"
+        >
+          &times;
+        </button>
+      )}
+    </p>
+  )
+}
+
+{
+  dismissable && (
+    <script>
+      document.querySelectorAll<HTMLElement>("[data-pretty-banner][data-dismissable]").forEach((banner) => {
+        const closeBtn = banner.querySelector<HTMLButtonElement>("[data-banner-close]");
+        closeBtn?.addEventListener("click", () => {
+          banner.dispatchEvent(new CustomEvent("close", { bubbles: true }));
+          banner.remove();
+        });
+      });
+    </script>
+  )
+}

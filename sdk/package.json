@@ -1,0 +1,45 @@
+{
+  "name": "@holyunblocker/sdk",
+  "type": "module",
+  "version": "0.0.5",
+  "engines": {
+    "node": ">=19"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {},
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/client/index.js",
+      "node": "./dist/server/index.js",
+      "default": "./dist/client/index.js"
+    },
+    "./client": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/client/index.js",
+      "default": "./dist/client/index.js"
+    },
+    "./server": {
+      "types": "./dist/types/index.d.ts",
+      "node": "./dist/server/index.js",
+      "default": "./dist/server/index.js"
+    },
+    "./router": {
+      "types": "./dist/types/router.d.ts",
+      "node": "./dist/server/router.js",
+      "default": "./dist/server/router.js"
+    },
+    "./vite": {
+      "types": "./dist/types/vite.d.ts",
+      "node": "./dist/vite/index.js",
+      "default": "./dist/vite/index.js"
+    },
+    "./types": "./dist/types/index.d.ts",
+    "./constants": {
+      "types": "./dist/types/constants.d.ts",
+      "default": "./dist/shared/constants.js"
+    }
+  }
+}

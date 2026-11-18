@@ -1,0 +1,75 @@
+{
+  "source": "user-supplied SystemYA-updated.zip and verified previous 2022 media capture",
+  "files": [
+    {
+      "path": "archive/wayback-2022/SystemYA/index.html",
+      "sha256": "325c58ecc209880ae5dd34ab4affead694bbc2c12ae3bd10ff95f1baa1db169c",
+      "bytes": 11210
+    },
+    {
+      "path": "archive/wayback-2022/SystemYA/theatre.html",
+      "sha256": "24e258d680d41314779dbfb9f8499e64488197c3a17eab4c7d7784f2270c545e",
+      "bytes": 50437
+    },
+    {
+      "path": "archive/wayback-2022/SystemYA/support.html",
+      "sha256": "f10f6cb3eb0b33a0b1161cd4f9db4268f67c7a7424d5592ea48b720e32160443",
+      "bytes": 11546
+    },
+    {
+      "path": "archive/wayback-2022/SystemYA/contact.html",
+      "sha256": "4194877e9010f5362c41fe86be085754109b8460d2ca2c8a13e18c6a782a1074",
+      "bytes": 13017
+    },
+    {
+      "path": "archive/wayback-2022/SystemYA/privacy.html",
+      "sha256": "de4111a5a59ed715a1b6fcba859967c26bfb1af0f119bf53dd8f52b53cc11dbc",
+      "bytes": 9906
+    },
+    {
+      "path": "archive/wayback-2022/SystemYA/index_files/main.59cf0c20.js",
+      "sha256": "d59cfa202dcae58ff040decf6ae1d2cce886ce89570d24c47289dec8f81667ea",
+      "bytes": 193221
+    },
+    {
+      "path": "archive/wayback-2022/SystemYA/index_files/main.eb81df9c.css",
+      "sha256": "8741d06288ce6349328aac940ac77fe322e1204d63ca2cdded215b88f20d200b",
+      "bytes": 125722
+    },
+    {
+      "path": "public/static/media/MaterialIcons-Regular.97b9b1857a2af7322eba.woff2",
+      "sha256": "273150c47a3c72fac516c64dbc2609311a03456037a0ff70ee1f1c85307eaa1a",
+      "bytes": 124404
+    },
+    {
+      "path": "public/static/media/dark.8cbd0429f3449df8c19c.svg",
+      "sha256": "d312a22d5f042b50a4c64ab724a4add39d6f7e3d3583a7994931a913c0bb892c",
+      "bytes": 456
+    },
+    {
+      "path": "public/static/media/light.2d95225a7bb6ff1db853.svg",
+      "sha256": "50da13c58abdf1fa930f7165c4721785f8cac73e8be45252dddddc8e2a5cc2a5",
+      "bytes": 429
+    },
+    {
+      "path": "public/static/media/segoe-ui-400.1a84982fb6140613fadc.woff2",
+      "sha256": "4f7f4afe26e71fa9ca1dac4a43b557a554a46f53251d849f07ed08a04829d74b",
+      "bytes": 34052
+    },
+    {
+      "path": "public/static/media/segoe-ui-600.c408ee083ec612e2efcf.woff2",
+      "sha256": "d87d0a7a7fe2c36d1dc093bfe56e9b81b311988789dbd3b65abf811d551ef02f",
+      "bytes": 29388
+    },
+    {
+      "path": "public/static/media/segoe-ui-700.c408ee083ec612e2efcf.woff2",
+      "sha256": "d87d0a7a7fe2c36d1dc093bfe56e9b81b311988789dbd3b65abf811d551ef02f",
+      "bytes": 29388
+    },
+    {
+      "path": "public/static/media/theatre.4cf739e3dd20f770bb30.webp",
+      "sha256": "5a525b5055dea581972a77ca29dc836d34fb2a8bc410b5c569360a0c74a33da9",
+      "bytes": 407838
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+module.exports = flarum.core.compat["components/NotificationsDropdown"];

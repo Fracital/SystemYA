@@ -1,0 +1,704 @@
+@use "./common.scss" as *;
+
+$control-height: 38px;
+$control-radius: 5px;
+
+.adminMain {
+  width: 100%;
+  height: calc(100vh - 60px);
+  padding: 14px 3vw 18px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.authMain {
+  width: 100%;
+  min-height: calc(100vh - 120px);
+  padding: 18px 3vw;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+}
+
+.authForm {
+  width: min(430px, 100%);
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background-accent-deep-1);
+}
+
+.authTitle {
+  margin: 0;
+  text-align: center;
+  font-size: 22px;
+}
+
+.authHint {
+  margin: 0;
+  color: var(--text-accent);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex: none;
+
+  h1 {
+    margin: 0;
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: var(--text-accent);
+  }
+}
+
+.headerActions,
+.editorHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.headerActions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  line-height: 16px;
+}
+
+.pruneToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: $control-height;
+  padding: 0 10px;
+  box-sizing: border-box;
+  color: var(--text);
+  background: var(--background-accent);
+  border: 1px solid var(--border);
+  border-radius: $control-radius;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+
+  &:hover {
+    background: var(--background-accent-deep-2);
+  }
+
+  // hide the native box; draw our own
+  input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    flex: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--background);
+    cursor: pointer;
+    position: relative;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+
+    &:checked {
+      background: var(--action);
+      border-color: var(--action);
+    }
+
+    // checkmark
+    &:checked::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 1px;
+      width: 4px;
+      height: 8px;
+      border: solid var(--action-secondary);
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    &:focus-visible {
+      outline: 0;
+      box-shadow: 0 0 0 0.15rem #0056ff3f;
+    }
+  }
+
+  // highlight the whole pill when active
+  &:has(input:checked) {
+    color: var(--action-secondary);
+    background: var(--action);
+    border-color: var(--action);
+
+    input {
+      border-color: var(--action-secondary);
+    }
+
+    input:checked {
+      background: var(--action-secondary);
+      border-color: var(--action-secondary);
+    }
+
+    input:checked::after {
+      border-color: var(--action);
+    }
+  }
+}
+
+.shell {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 400px) minmax(0, 1fr);
+  gap: 10px;
+  height: calc(100vh - 126px);
+  max-height: calc(100vh - 126px);
+}
+
+.listPanel,
+.editorPanel {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background-accent-deep-1);
+}
+
+.listPanel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editorPanel {
+  overflow: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  scrollbar-gutter: stable;
+  // space for action buttons
+  padding-bottom: 60px;
+  position: relative;
+}
+
+.editorPanel form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) $control-height $control-height;
+  gap: 6px;
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+.filterWrap {
+  position: relative;
+}
+
+.filterMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 10;
+  width: 240px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background-accent-deep-1);
+  box-shadow: 0 8px 24px var(--shadow);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.filterField {
+  display: grid;
+  gap: 5px;
+
+  span,
+  div {
+    font-size: 13px;
+  }
+}
+
+.filterSelect {
+  width: 100%;
+  min-width: 0;
+}
+
+.searchBox {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  height: $control-height;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: $control-radius;
+  background: var(--background-accent);
+
+  svg {
+    color: var(--text-placeholder);
+  }
+
+  input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    color: var(--text);
+    background: transparent;
+  }
+}
+
+.iconButton,
+.secondaryButton,
+.dangerButton,
+.primaryButton {
+  min-height: $control-height;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: $control-radius;
+  color: var(--text);
+  background: var(--background-accent);
+  cursor: pointer;
+  font: inherit;
+}
+
+.iconButton {
+  width: $control-height;
+  height: $control-height;
+  padding: 0;
+  flex: none;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.primaryButton {
+  color: var(--action-secondary);
+  background: var(--action);
+}
+
+.dangerButton {
+  color: #fff;
+  background: var(--error);
+}
+
+.wide {
+  width: 100%;
+}
+
+.secondaryButton:hover,
+.iconButton:hover {
+  background: var(--background-accent-deep-2);
+}
+
+.primaryButton:hover {
+  background: var(--action-hover);
+}
+
+.iconButton:disabled,
+.dangerButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.resultsMeta {
+  padding: 7px 10px;
+  color: var(--text-accent);
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+.entryList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.entryButton {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  padding: 9px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &[data-selected="true"] {
+    background: var(--background-accent);
+    box-shadow: inset 3px 0 0 var(--action);
+  }
+
+  strong,
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    color: var(--text-accent);
+    font-size: 13px;
+  }
+}
+
+.editorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+
+  h2 {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    margin: 0;
+    font-size: 19px;
+  }
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+
+  span {
+    color: var(--text-accent);
+    font-size: 14px;
+  }
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+.checkboxField {
+  display: flex;
+  align-items: center;
+  min-height: $control-height;
+  gap: 8px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  color: var(--text);
+  background: var(--background-accent);
+  border: 1px solid var(--border);
+  border-radius: $control-radius;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+
+  &:hover {
+    background: var(--background-accent-deep-2);
+  }
+
+  // hide the native box; draw our own
+  input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    flex: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--background);
+    cursor: pointer;
+    position: relative;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+
+    &:checked {
+      background: var(--action);
+      border-color: var(--action);
+    }
+
+    // checkmark
+    &:checked::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 1px;
+      width: 4px;
+      height: 8px;
+      border: solid var(--action-secondary);
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    &:focus-visible {
+      outline: 0;
+      box-shadow: 0 0 0 0.15rem #0056ff3f;
+    }
+  }
+
+  span {
+    color: var(--text);
+    font-size: 14px;
+  }
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: $control-radius;
+  color: var(--text);
+  background: var(--background-accent);
+  font: inherit;
+}
+
+.select {
+  height: $control-height;
+}
+
+.input {
+  height: $control-height;
+}
+
+.textarea {
+  min-height: 76px;
+  resize: vertical;
+  font-family:
+    ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+
+.categoryRow {
+  min-height: $control-height;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.categoryChips {
+  display: contents;
+}
+
+.categoryChip {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: $control-radius;
+  color: var(--text);
+  background: var(--background-accent);
+  cursor: pointer;
+  font: inherit;
+
+  &[data-empty="true"] {
+    cursor: default;
+    color: var(--text-accent);
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.categoryAdd {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) $control-height;
+  gap: 6px;
+  flex: 1 1 220px;
+  min-width: min(100%, 220px);
+}
+
+.actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  bottom: -60px;
+  background: var(--background-accent-deep-1);
+}
+
+.actionGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.notice {
+  margin: 0 0 12px;
+}
+
+.emptyState {
+  padding: 24px 12px;
+  color: var(--text-accent);
+  text-align: center;
+}
+
+.detailPanel {
+  width: 100%;
+  max-width: 760px;
+  padding: 16px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background-accent-deep-1);
+}
+
+.detailMain {
+  height: auto;
+  min-height: calc(100vh - 60px);
+}
+
+.preview {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--background-accent);
+
+  img {
+    width: 76px;
+    object-fit: cover;
+    border-radius: $control-radius;
+    background: var(--background);
+  }
+
+  div {
+    min-width: 0;
+  }
+
+  strong,
+  span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    margin-top: 4px;
+    color: var(--text-accent);
+  }
+}
+
+.thumbnailActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+
+  &[hidden] {
+    display: none;
+  }
+
+  .secondaryButton {
+    min-height: 30px;
+    padding: 0 9px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 860px) {
+  .adminMain {
+    min-height: auto;
+  }
+
+  .header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .headerActions,
+  .editorHeader,
+  .editorHeaderActions {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .headerActions {
+    justify-content: stretch;
+  }
+
+  .shell {
+    height: auto;
+    max-height: none;
+    grid-template-columns: 1fr;
+  }
+
+  .listPanel {
+    height: min(70vh, 620px);
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .categoryAdd {
+    flex-basis: 100%;
+  }
+
+  .actionGroup,
+  .primaryButton,
+  .secondaryButton,
+  .dangerButton {
+    width: 100%;
+  }
+}

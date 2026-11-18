@@ -1,0 +1,78 @@
+{
+  "evidence": "Compared source1.zip with 2022 recovered asset hashes",
+  "historicalWeight700": "Segoe UI Semibold 600, preserved",
+  "historicalWeight100": "not recovered",
+  "historicalWeight200": "alternative available; exact archived bytes not verified",
+  "variableAxes": {
+    "wght": [
+      300,
+      700
+    ],
+    "opsz": [
+      5,
+      36
+    ]
+  },
+  "fonts": [
+    {
+      "source": "segoe-ui/west-european/normal/latest.woff2",
+      "path": "public/static/media/segoe-ui-400.1a84982fb6140613fadc.woff2",
+      "sha256": "4f7f4afe26e71fa9ca1dac4a43b557a554a46f53251d849f07ed08a04829d74b",
+      "bytes": 34052,
+      "family": "Segoe UI",
+      "weight": 400,
+      "kind": "historical",
+      "action": "import"
+    },
+    {
+      "source": "segoe-ui/west-european/Semibold/latest.woff2",
+      "path": "public/static/media/segoe-ui-600.c408ee083ec612e2efcf.woff2",
+      "sha256": "d87d0a7a7fe2c36d1dc093bfe56e9b81b311988789dbd3b65abf811d551ef02f",
+      "bytes": 29388,
+      "family": "Segoe UI Semibold",
+      "weight": 600,
+      "kind": "historical",
+      "action": "import"
+    },
+    {
+      "source": "segoe-ui/west-european/light/latest.woff2",
+      "path": "public/systemya-2022/fonts/optional/segoe-ui-light-ms-v5.32.woff2",
+      "sha256": "fe8a1047376498c80a157d13555e42a92ad480fcb0bcc9de51ad1930fbeb7f91",
+      "bytes": 27168,
+      "family": "Segoe UI Light",
+      "weight": 200,
+      "kind": "optional",
+      "action": "import"
+    },
+    {
+      "source": "segoe-ui/west-european/semilight/latest.woff2",
+      "path": "public/systemya-2022/fonts/optional/segoe-ui-semilight-ms-v5.32.woff2",
+      "sha256": "6ba0d1a726f1887bd61727b308ed0be0e73edba17d4ad11b91ab19b632e078f6",
+      "bytes": 28908,
+      "family": "Segoe UI Semilight",
+      "weight": 300,
+      "kind": "optional",
+      "action": "import"
+    },
+    {
+      "source": "segoe-ui/west-european/Bold/latest.woff2",
+      "path": "public/systemya-2022/fonts/optional/segoe-ui-bold-ms-v5.32.woff2",
+      "sha256": "1232bbdbc5d205f3c5a40efa5ed92839c79e7879d5168445cc47645bb93f7d1b",
+      "bytes": 30132,
+      "family": "Segoe UI Bold",
+      "weight": 700,
+      "kind": "optional",
+      "action": "import"
+    },
+    {
+      "source": "SegoeUIVariable/SegoeUI-VF.ttf",
+      "path": "public/systemya-2022/fonts/optional/SegoeUI-VF.ttf",
+      "sha256": "db31f6dea80a2b1d50db08b9f18a4dd50524e77b755c5d8066f6879e64380540",
+      "bytes": 1844524,
+      "family": "Segoe UI Variable",
+      "weight": "300-700",
+      "kind": "optional",
+      "action": "import"
+    }
+  ]
+}

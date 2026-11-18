@@ -1,0 +1,90 @@
+{
+  "reference": "May 26 2022 SystemYA CSS",
+  "mode": "dry-run",
+  "summary": {
+    "total": 12,
+    "available": 7,
+    "missing": 5
+  },
+  "assets": [
+    {
+      "filename": "MaterialIcons-Regular.24a6611c28f373a0e1d7.ttf",
+      "original_url": "https://sys32.dev/static/media/MaterialIcons-Regular.24a6611c28f373a0e1d7.ttf",
+      "status": "missing",
+      "attempts": []
+    },
+    {
+      "filename": "MaterialIcons-Regular.28d729e6d7a187ee4978.eot",
+      "original_url": "https://sys32.dev/static/media/MaterialIcons-Regular.28d729e6d7a187ee4978.eot",
+      "status": "missing",
+      "attempts": []
+    },
+    {
+      "filename": "MaterialIcons-Regular.824b570fb059ee0a44a9.woff",
+      "original_url": "https://sys32.dev/static/media/MaterialIcons-Regular.824b570fb059ee0a44a9.woff",
+      "status": "missing",
+      "attempts": []
+    },
+    {
+      "filename": "MaterialIcons-Regular.97b9b1857a2af7322eba.woff2",
+      "original_url": "https://sys32.dev/static/media/MaterialIcons-Regular.97b9b1857a2af7322eba.woff2",
+      "status": "present",
+      "attempts": [],
+      "sha256": "273150c47a3c72fac516c64dbc2609311a03456037a0ff70ee1f1c85307eaa1a"
+    },
+    {
+      "filename": "dark.8cbd0429f3449df8c19c.svg",
+      "original_url": "https://sys32.dev/static/media/dark.8cbd0429f3449df8c19c.svg",
+      "status": "present",
+      "attempts": [],
+      "sha256": "d312a22d5f042b50a4c64ab724a4add39d6f7e3d3583a7994931a913c0bb892c"
+    },
+    {
+      "filename": "light.2d95225a7bb6ff1db853.svg",
+      "original_url": "https://sys32.dev/static/media/light.2d95225a7bb6ff1db853.svg",
+      "status": "present",
+      "attempts": [],
+      "sha256": "50da13c58abdf1fa930f7165c4721785f8cac73e8be45252dddddc8e2a5cc2a5"
+    },
+    {
+      "filename": "segoe-ui-100.3f00cbd97beb52974149.woff2",
+      "original_url": "https://sys32.dev/static/media/segoe-ui-100.3f00cbd97beb52974149.woff2",
+      "status": "missing",
+      "attempts": []
+    },
+    {
+      "filename": "segoe-ui-200.9d7fc8603d2ad4bbc468.woff2",
+      "original_url": "https://sys32.dev/static/media/segoe-ui-200.9d7fc8603d2ad4bbc468.woff2",
+      "status": "missing",
+      "attempts": []
+    },
+    {
+      "filename": "segoe-ui-400.1a84982fb6140613fadc.woff2",
+      "original_url": "https://sys32.dev/static/media/segoe-ui-400.1a84982fb6140613fadc.woff2",
+      "status": "present",
+      "attempts": [],
+      "sha256": "4f7f4afe26e71fa9ca1dac4a43b557a554a46f53251d849f07ed08a04829d74b"
+    },
+    {
+      "filename": "segoe-ui-600.c408ee083ec612e2efcf.woff2",
+      "original_url": "https://sys32.dev/static/media/segoe-ui-600.c408ee083ec612e2efcf.woff2",
+      "status": "present",
+      "attempts": [],
+      "sha256": "d87d0a7a7fe2c36d1dc093bfe56e9b81b311988789dbd3b65abf811d551ef02f"
+    },
+    {
+      "filename": "segoe-ui-700.c408ee083ec612e2efcf.woff2",
+      "original_url": "https://sys32.dev/static/media/segoe-ui-700.c408ee083ec612e2efcf.woff2",
+      "status": "present",
+      "attempts": [],
+      "sha256": "d87d0a7a7fe2c36d1dc093bfe56e9b81b311988789dbd3b65abf811d551ef02f"
+    },
+    {
+      "filename": "theatre.4cf739e3dd20f770bb30.webp",
+      "original_url": "https://sys32.dev/static/media/theatre.4cf739e3dd20f770bb30.webp",
+      "status": "present",
+      "attempts": [],
+      "sha256": "5a525b5055dea581972a77ca29dc836d34fb2a8bc410b5c569360a0c74a33da9"
+    }
+  ]
+}

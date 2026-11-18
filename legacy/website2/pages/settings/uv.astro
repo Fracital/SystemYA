@@ -1,0 +1,389 @@
+---
+import ThemeSelect from "@components/ThemeSelect.astro";
+import SettingsLayout from "@layouts/SettingsLayout.astro";
+import styles from "@styles/Settings.module.scss";
+import pt from "@styles/PageTitle.module.scss";
+import gh from "@styles/Ghost.module.scss";
+import Check from "@icons/check_24dp.svg?react";
+import themeStyles from "@styles/ThemeElements.module.scss";
+import Banner from "@components/Banner.astro";
+import searchEngines from "@lib/searchEngines";
+import HolyText from "@components/HolyText.astro";
+
+let error: string | undefined;
+
+// noscript support eeeeeeeee
+if (Astro.request.method === "POST")
+  try {
+    const data = await Astro.request.formData();
+    const type = data.get("type")?.toString();
+
+    switch (type) {
+      case "proxyMode":
+        {
+          const proxyMode = data.get("proxyMode")?.toString();
+          if (!Astro.locals.setProxyMode(proxyMode))
+            error = "Please enter a valid proxyMode!";
+        }
+        break;
+      case "bareServer":
+        {
+          const bareServer = data.get("newBareUrl")?.toString();
+          if (!Astro.locals.setBareServer(bareServer))
+            error = "Please enter a valid bare server URL!";
+        }
+        break;
+      case "wispServer":
+        {
+          const wispServer = data.get("newWispUrl")?.toString();
+          if (!Astro.locals.setWispServer(wispServer))
+            error = "Please enter a valid wisp server URL!";
+        }
+        break;
+      case "proxyEngine":
+        {
+          const proxyEngine = data.get("proxyEngine")?.toString();
+          if (!Astro.locals.setProxyEngine(proxyEngine))
+            error = "Please enter a valid proxy engine!";
+        }
+        break;
+      case "adblock":
+        {
+          const adblock = data.get("adblock")?.toString();
+          Astro.locals.setAdblock(adblock === "1");
+        }
+        break;
+      case "noscript":
+        {
+          const noscript = data.get("noscript")?.toString();
+          Astro.locals.setNoscript(noscript === "1");
+        }
+        break;
+      case "tor":
+        {
+          const tor = data.get("tor")?.toString();
+          Astro.locals.setTor(tor === "1");
+        }
+        break;
+    }
+  } catch (err) {
+    console.error(err);
+  }
+---
+
+<SettingsLayout title="Proxy Settings">
+  <section class={styles.section}>
+    <h1 class:list={[pt.pageTitle, pt.sub, pt.settings, styles.pageTitle]}>
+      <HolyText text="Proxy Settings" />
+    </h1>
+    <Banner error={error} />
+
+    <div class={styles.card}>
+      <p class={styles.cardTitle}><HolyText text="Connection" /></p>
+      <form method="post" class={styles.row}>
+        <p><HolyText text="Proxy Mode" /></p>
+        <ThemeSelect
+          name="proxyMode"
+          id="proxyMode"
+          class={styles.themeSelect}
+          options={[
+            { name: "Embedded", value: "embedded" },
+            { name: "Redirect", value: "redirect" },
+            { name: "about:blank", value: "about:blank" },
+          ]}
+          value={Astro.locals.proxyMode}
+        />
+      </form>
+      <form method="post" class={styles.row}>
+        <p><HolyText text="Search Engine" /></p>
+        <ThemeSelect
+          name="searchEngine"
+          class={styles.themeSelect}
+          id="searchEngine"
+          options={searchEngines.map(({ name }, i) => ({
+            name,
+            value: i.toString(),
+          }))}
+          value={Astro.locals.searchEngine.toString()}
+        />
+      </form>
+      <form method="post" class={styles.row}>
+        <p><HolyText text="Transport" /></p>
+        <ThemeSelect
+          name="proxyTransport"
+          id="proxyTransport"
+          class={styles.themeSelect}
+          options={[
+            { name: "Epoxy", value: "epoxy" },
+            { name: "Bare", value: "bare" },
+          ]}
+          value={Astro.locals.proxyTransport}
+        />
+      </form>
+      <form method="post" class={styles.row}>
+        <p><HolyText text="Proxy Engine" /></p>
+        <ThemeSelect
+          name="proxyEngine"
+          id="proxyEngine"
+          class={styles.themeSelect}
+          options={[
+            { name: "Ultraviolet", value: "uv" },
+            { name: "Scramjet", value: "sj" },
+          ]}
+          value={Astro.locals.proxyEngine}
+        />
+      </form>
+      <form method="post" class={styles.row}>
+        <input type="text" name="type" value="adblock" hidden />
+        <p><HolyText text="Adblock" /></p>
+        <ThemeSelect
+          name="adblock"
+          id="adblock"
+          class={styles.themeSelect}
+          options={[
+            { name: "Off", value: "0" },
+            { name: "On", value: "1" },
+          ]}
+          value={Astro.locals.adblock ? "1" : "0"}
+        />
+      </form>
+      <form method="post" class={styles.row}>
+        <input type="text" name="type" value="noscript" hidden />
+        <p><HolyText text="Disable Scripts" /></p>
+        <ThemeSelect
+          name="noscript"
+          id="noscript"
+          class={styles.themeSelect}
+          options={[
+            { name: "Off", value: "0" },
+            { name: "On", value: "1" },
+          ]}
+          value={Astro.locals.noscript ? "1" : "0"}
+        />
+      </form>
+    </div>
+
+    <div class={styles.card}>
+      <p class={styles.cardTitle}><HolyText text="Servers" /></p>
+      {
+        Astro.locals.torAvailable && (
+          <form method="post" class={styles.row}>
+            <input type="text" name="type" value="tor" hidden />
+            <p>
+              <HolyText text="Route through Tor" />
+            </p>
+            <ThemeSelect
+              name="tor"
+              id="tor"
+              class={styles.themeSelect}
+              options={[
+                { name: "Off", value: "0" },
+                { name: "On", value: "1" },
+              ]}
+              value={Astro.locals.tor ? "1" : "0"}
+            />
+          </form>
+        )
+      }
+      <form method="post" class:list={[styles.row, styles.rowStacked]}>
+        <!-- noscript support -->
+        <p><HolyText text="Bare Server" /></p>
+        <input type="text" name="type" value="bareServer" hidden />
+        <div class:list={[themeStyles.ThemeInputBar, styles.inputBar, styles.control]}>
+          <input
+            class={themeStyles.thinPadRight}
+            type="text"
+            name="newBareUrl"
+            id="newBareUrl"
+            disabled={Astro.locals.tor}
+          />
+          <button
+            type="submit"
+            class:list={[themeStyles.ThemeButton, themeStyles.block]}
+            set:html={Check}
+          />
+        </div>
+      </form>
+      <form method="post" class:list={[styles.row, styles.rowStacked]}>
+        <!-- noscript support -->
+        <p><HolyText text="Wisp Server" /></p>
+        <input type="text" name="type" value="wispServer" hidden />
+        <div class:list={[themeStyles.ThemeInputBar, styles.inputBar, styles.control]}>
+          <input
+            class={themeStyles.thinPadRight}
+            type="text"
+            name="newWispUrl"
+            id="newWispUrl"
+            disabled={Astro.locals.tor}
+          />
+          <button
+            type="submit"
+            class:list={[themeStyles.ThemeButton, themeStyles.block]}
+            set:html={Check}
+          />
+        </div>
+      </form>
+    </div>
+
+    <!-- noscript!!!! -->
+    <noscript>
+      <input
+        type="submit"
+        class:list={[themeStyles.save, themeStyles.ThemeButton]}
+        value="Save"
+      />
+    </noscript>
+    {
+      !Astro.locals.isMainWebsite && (
+        <p class:list={[gh.ghost, styles.ghost]}>
+          <HolyText text="Are you the maintainer of this instance? If you want to use a separate Wisp server by default, and even configure it on a subdomain, you can change 'separateWispServer' in ./config/config.js of your instance." />
+        </p>
+      )
+    }
+  </section>
+</SettingsLayout>
+<script>
+  import {
+    setProxyTransport,
+    setSearchEngine,
+    setProxyMode,
+    setWispServer,
+    setBareServer,
+    setProxyEngine,
+    setAdblock,
+    setTor,
+    setNoscript,
+    clearCookie,
+  } from "@lib/cookies";
+  import { getBareUrl, getWispUrl } from "@lib/register-sw";
+  import { createNotification } from "@lib/notifications";
+
+  document.addEventListener("astro:page-load", () => {
+    const proxyMode = document.querySelector<HTMLInputElement>("#proxyMode")!;
+    if (proxyMode === null) return;
+
+    const proxyTransport =
+      document.querySelector<HTMLInputElement>("#proxyTransport")!;
+
+    proxyTransport.addEventListener("change", () => {
+      setProxyTransport(proxyTransport.value);
+    });
+
+    const newBareUrl = document.getElementById(
+      "newBareUrl",
+    )! as HTMLInputElement;
+    newBareUrl.value = getBareUrl();
+    newBareUrl.form!.addEventListener("submit", (event) => {
+      event.preventDefault();
+      // ignore edits while tor pins the bare server
+      if (newBareUrl.disabled) return;
+      if (newBareUrl.value === "") {
+        clearCookie("bareServer");
+        createNotification({
+          title: "Bare Server",
+          description: "Reset to the default bare server.",
+          type: "success",
+        });
+        location.reload();
+        return;
+      }
+      try {
+        new URL(newBareUrl.value);
+      } catch (err) {
+        createNotification({
+          title: "Bare Server",
+          description: "Invalid bare server URL.",
+          type: "error",
+        });
+        return;
+      }
+      setBareServer(newBareUrl.value);
+      createNotification({
+        title: "Bare Server",
+        description: "Saved your bare server.",
+        type: "success",
+      });
+    });
+
+    const newWispUrl = document.getElementById(
+      "newWispUrl",
+    )! as HTMLInputElement;
+    newWispUrl.value = getWispUrl();
+    const tor = document.querySelector<HTMLInputElement>("#tor");
+    const syncServerLock = () => {
+      const torOn = tor?.value === "1";
+      newBareUrl.disabled = torOn;
+      newWispUrl.disabled = torOn;
+      newBareUrl.value = getBareUrl();
+      newWispUrl.value = getWispUrl();
+    };
+    syncServerLock();
+    newWispUrl.form!.addEventListener("submit", (event) => {
+      event.preventDefault();
+      // ignore edits while tor pins the wisp server
+      if (newWispUrl.disabled) return;
+      if (newWispUrl.value === "") {
+        clearCookie("wispServer");
+        createNotification({
+          title: "Wisp Server",
+          description: "Reset to the default wisp server.",
+          type: "success",
+        });
+        location.reload();
+        return;
+      }
+      try {
+        new URL(newWispUrl.value);
+      } catch (err) {
+        createNotification({
+          title: "Wisp Server",
+          description: "Invalid wisp server URL.",
+          type: "error",
+        });
+        return;
+      }
+      setWispServer(newWispUrl.value);
+      createNotification({
+        title: "Wisp Server",
+        description: "Saved your wisp server.",
+        type: "success",
+      });
+    });
+
+    proxyMode.addEventListener("change", () => {
+      setProxyMode(proxyMode.value);
+    });
+
+    const searchEngine =
+      document.querySelector<HTMLInputElement>("#searchEngine")!;
+
+    searchEngine.addEventListener("change", () => {
+      setSearchEngine(Number(searchEngine.value));
+    });
+
+    const proxyEngine =
+      document.querySelector<HTMLInputElement>("#proxyEngine")!;
+
+    proxyEngine.addEventListener("change", () => {
+      setProxyEngine(proxyEngine.value);
+    });
+
+    const adblock = document.querySelector<HTMLInputElement>("#adblock")!;
+
+    adblock.addEventListener("change", () => {
+      setAdblock(adblock.value === "1");
+    });
+
+    const noscript = document.querySelector<HTMLInputElement>("#noscript")!;
+
+    noscript.addEventListener("change", () => {
+      setNoscript(noscript.value === "1");
+    });
+
+    if (tor)
+      tor.addEventListener("change", () => {
+        setTor(tor.value === "1");
+        syncServerLock();
+      });
+  });
+</script>

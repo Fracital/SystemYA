@@ -1,0 +1,19 @@
+# Place map in the http {} scope of nginx.conf.
+map $http_upgrade $systemya_connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
+# Place location in the HTTPS server block for systemya.fracit.al.
+# Proxy everything to the SystemYA Node server, including /room/ and /wisp/.
+# Node injects the Holt license only on requests to Holt.
+location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $systemya_connection_upgrade;
+    proxy_read_timeout 3600s;
+}

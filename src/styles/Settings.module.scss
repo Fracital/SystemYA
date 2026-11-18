@@ -1,0 +1,347 @@
+@use "./common.scss" as *;
+
+$menu-height: 90px;
+$settings-width: 560px;
+
+.section {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: auto;
+  padding: 20px 30px;
+  box-sizing: border-box;
+
+  > div:not(.card):not(.cardActions),
+  > form:not(.row):not(.cardActions) {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+    max-width: 400px;
+    width: 100%;
+
+    > p {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    > svg {
+      width: 24px;
+      height: 24px;
+      margin-right: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: inherit;
+      height: inherit;
+
+      @include screenMobile {
+        margin-right: 0;
+      }
+    }
+  }
+}
+
+// title sits above the card and shouldn't pick up the column form styling
+.section > .pageTitle {
+  margin: 0 0 16px;
+  max-width: $settings-width;
+}
+
+.section > .intro {
+  margin: 0 0 16px;
+  max-width: $settings-width;
+  color: var(--text-accent);
+}
+
+// grouped settings rendered as a single bordered card
+.card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: $settings-width;
+  margin: 0 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background-accent-deep-1);
+}
+
+.cardTitle {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-accent);
+  border-bottom: 1px solid var(--border);
+}
+
+// a single label-left / control-right row inside a card
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--border);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  > p {
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  // the control sits on the right at a consistent width
+  > .themeSelect,
+  > .control {
+    flex: 0 0 auto;
+    width: 220px;
+    max-width: 60%;
+    margin: 0;
+  }
+
+  .inputBar {
+    width: 100%;
+    max-width: none;
+  }
+
+  @include screenMobile {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+
+    > .themeSelect,
+    > .control {
+      width: 100%;
+      max-width: none;
+    }
+  }
+}
+
+// stacked row variant for full-width controls (eg. server URL inputs)
+.rowStacked {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+
+  > .themeSelect,
+  > .control {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: $settings-width;
+  margin: 0 0 16px;
+}
+
+.main {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  padding-left: 300px;
+  display: flex;
+
+  @include screenMobile {
+    flex-direction: column;
+    padding-left: 0;
+    padding-top: $menu-height;
+  }
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  > svg {
+    width: inherit;
+    height: inherit;
+  }
+}
+
+.inputBar {
+  max-width: 500px;
+}
+
+.themeSelect {
+  margin-right: auto;
+}
+
+// grid of built-in tab cloak pills (icon + name), styled after the theatre
+// admin .pruneToggle pill but with the cloak icon replacing the checkbox.
+.cloakGrid {
+  flex-direction: row !important;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: unset !important;
+  margin: 0 0 16px;
+  // justify-content: space-between;
+
+  > form {
+    margin: 0;
+    min-width: 0;
+  }
+}
+
+.cloakPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  line-height: 38px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  color: var(--text);
+  background: var(--background-accent);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  user-select: none;
+  text-align: left;
+  font: inherit;
+  max-width: 200px;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+
+  &:hover {
+    background: var(--background-accent-deep-2);
+    border-color: var(--action);
+  }
+
+  &:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 0.15rem #0056ff3f;
+  }
+}
+
+.cloakIcon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  object-fit: contain;
+  background: var(--background);
+}
+
+.cloakName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ghost {
+  max-width: $settings-width;
+  margin-top: 4px;
+}
+
+.menu {
+  height: 100%;
+  position: fixed;
+  flex-direction: column;
+  overflow-y: auto;
+  display: flex;
+  left: 0;
+  top: 0;
+  background-color: var(--background);
+  margin-top: $nav-height-border;
+  border-right: 1px solid var(--border);
+  width: 300px;
+  height: calc(100vh - $nav-height-border);
+  box-sizing: border-box;
+  transform: translateX(0);
+  z-index: 1;
+
+  @include screenMobile {
+    border-right: 0;
+    padding-left: 0px;
+    width: 100%;
+    height: $menu-height;
+    flex-direction: row;
+    gap: 10px;
+    padding: 10px 20px;
+    box-sizing: border-box;
+  }
+}
+
+.entry {
+  cursor: pointer;
+  white-space: pre;
+  border: none;
+  color: var(--contrast-background);
+  display: flex;
+  align-items: center;
+  font: inherit;
+  font-size: 14px;
+  height: 24px;
+  padding: 10px 25px;
+
+  @include screenMobile {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    box-sizing: content-box;
+    border-radius: 5px;
+    padding: 0px;
+    background-color: var(--background-accent-deep-1);
+
+    > span:nth-child(1) {
+      margin-right: 0;
+    }
+  }
+
+  &:hover {
+    background-color: var(--background-accent);
+
+    @include screenMobile {
+      color: var(--contrast-background);
+    }
+  }
+
+  &[data-outlined] {
+    svg:nth-child(1) {
+      display: none;
+    }
+
+    svg:nth-child(2) {
+      display: block;
+    }
+
+    &[data-selected] {
+      svg:nth-child(1) {
+        display: block;
+      }
+
+      svg:nth-child(2) {
+        display: none;
+      }
+    }
+  }
+
+  &[data-selected] {
+    background-color: var(--background-accent);
+  }
+
+  > .name {
+    font-weight: bold;
+  }
+}
