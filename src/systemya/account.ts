@@ -1,4 +1,4 @@
-// The /account/ page: Fracital Accounts (src/fracital/auth.ts) in SystemYA's own markup.
+// The /account/ page: Fracital Accounts (src/fracital/auth.ts) in a card laid out like Fracital's about:account.
 import {
   ACCOUNT_EVENT,
   addPasskey,
@@ -13,6 +13,7 @@ import {
   getMe,
   oauthUsable,
   passkeysUsable,
+  refreshMe,
   requestPasswordReset,
   resetPassword,
   sendVerificationEmail,
@@ -34,12 +35,13 @@ import {
   linkCrossSite,
   unlinkCrossSite,
 } from "../fracital/cross-site";
+import { icon, systemyaMark, type IconName } from "./account-icons";
 
-const PROVIDER_NAMES: Record<SocialProvider, string> = {
-  discord: "Discord",
-  google: "Google",
-  github: "GitHub",
-  microsoft: "Microsoft",
+const PROVIDERS: Record<SocialProvider, { label: string; icon: IconName }> = {
+  google: { label: "Google", icon: "google" },
+  discord: { label: "Discord", icon: "discord" },
+  github: { label: "GitHub", icon: "github" },
+  microsoft: { label: "Microsoft", icon: "microsoft" },
 };
 
 type Child = Node | string | null | undefined | false;
@@ -57,21 +59,25 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-const field = (label: string, input: HTMLInputElement) =>
-  el(
-    "label",
-    { class: "systemya-account-field" },
-    el("span", {}, label),
-    input,
-  );
-const input = (
+/** A text box whose label sits inside it until there is text, like Fracital's Input. */
+const field = (
+  label: string,
   type: string,
   name: string,
   autocomplete: AutoFill,
   required = true,
-) => el("input", { type, name, autocomplete, required });
+) =>
+  el(
+    "label",
+    { class: "acct-field" },
+    el("input", { type, name, autocomplete, required, placeholder: " " }),
+    el("span", {}, label),
+  );
 
-type View = "signin" | "register" | "forgot";
+const count = (n: number) => n.toLocaleString();
+
+type Page = "login" | "register" | "forgot" | "reset";
+type Control = HTMLButtonElement | HTMLInputElement;
 
 export function mountAccount(root: HTMLElement): void {
   const host = root.querySelector<HTMLElement>("#systemya-account");
@@ -79,83 +85,108 @@ export function mountAccount(root: HTMLElement): void {
   host.dataset.bound = "1";
 
   const params = new URLSearchParams(location.search);
-  let resetToken = params.get("reset") ? params.get("token") : null;
-  let view: View = "signin";
-  let notice = params.get("verified") ? "Your email is verified." : "";
-  let error = params.get("error")
-    ? "That link didn't work. It may have expired."
-    : "";
+  const resetLink = params.has("reset");
+  const linkError = !!params.get("error");
+  let resetToken = resetLink && !linkError ? params.get("token") : null;
+  let page: Page = resetToken ? "reset" : resetLink ? "forgot" : "login";
+  let terbium = false;
+  let notice =
+    params.get("verified") && !linkError ? "Your email is verified." : "";
+  let error =
+    resetLink && !resetToken
+      ? "That reset link is invalid or expired. Ask for a new one below."
+      : linkError
+        ? "That verification link is invalid or expired. Sign in and send a new one from your account page."
+        : "";
   if (params.toString()) history.replaceState(null, "", location.pathname);
 
-  const status = el("p", { class: "systemya-account-status" });
-  status.setAttribute("role", "status");
-  const body = el("div");
-  host.replaceChildren(el("h1", {}, "Account"), status, body);
+  // Signed-in panels that open in place.
+  let pwForm = false;
+  let lbForm = false;
+  let terbiumForm = false;
+  let profileSaved = false;
+
+  const banner = el("div", { class: "acct-banner" });
+  banner.setAttribute("role", "status");
+  const card = el("div", { class: "acct-card" });
+  card.dataset.state = "loading";
+  host.replaceChildren(card);
 
   const showStatus = () => {
-    status.textContent = error || notice;
-    status.dataset.kind = error ? "error" : "ok";
+    banner.textContent = error || notice;
+    banner.dataset.kind = error ? "error" : "ok";
+    banner.hidden = !(error || notice);
   };
 
-  /** Runs a user action: disables its controls, shows its error, redraws after. */
+  /**
+   * Runs a user action: disables its controls and shows busyText while it runs. Success redraws the
+   * card (with `done` as a notice); a failure keeps what was typed and shows the error.
+   */
   const run = (
-    button: HTMLButtonElement | HTMLFormElement,
+    trigger: HTMLButtonElement | HTMLFormElement,
     action: () => Promise<void>,
-    done?: string,
+    done = "",
+    busyText = "",
   ) => {
-    const controls =
-      button instanceof HTMLFormElement ? [...button.elements] : [button];
-    for (const c of controls) (c as HTMLButtonElement).disabled = true;
+    const controls = (
+      trigger instanceof HTMLFormElement ? [...trigger.elements] : [trigger]
+    ) as Control[];
+    const was = controls.map((c) => c.disabled);
+    const labelled =
+      trigger instanceof HTMLFormElement
+        ? trigger.querySelector<HTMLButtonElement>("button[type=submit]")
+        : trigger;
+    const label = labelled?.querySelector<HTMLElement>(".acct-label");
+    const before = label?.textContent ?? "";
+    if (busyText && label) label.textContent = busyText;
+    for (const c of controls) c.disabled = true;
     error = "";
     notice = "";
     showStatus();
-    action()
-      .then(() => {
-        notice = done || "";
-      })
-      .catch((err: unknown) => {
-        error = err instanceof Error ? err.message : "Something went wrong";
-      })
-      .finally(() => {
-        for (const c of controls) (c as HTMLButtonElement).disabled = false;
+    action().then(
+      () => {
+        notice = done;
         void render();
-      });
+      },
+      (err: unknown) => {
+        error =
+          err instanceof Error && err.message
+            ? err.message
+            : "Something went wrong";
+        showStatus();
+        controls.forEach((c, i) => (c.disabled = was[i]));
+        if (label) label.textContent = before;
+        if (banner.isConnected) {
+          const box = banner.getBoundingClientRect();
+          if (box.top < 0 || box.bottom > innerHeight)
+            banner.scrollIntoView({ block: "center", behavior: "smooth" });
+        }
+      },
+    );
   };
 
   const button = (
     label: string,
     onClick: (b: HTMLButtonElement) => void,
-    kind = "",
+    className = "acct-pill",
+    iconName?: IconName,
   ) => {
     const b = el(
       "button",
-      {
-        type: "button",
-        class: kind
-          ? `systemya-account-button ${kind}`
-          : "systemya-account-button",
-      },
-      label,
+      { type: "button", class: className },
+      iconName ? icon(iconName) : null,
+      el("span", { class: "acct-label" }, label),
     );
     b.addEventListener("click", () => onClick(b));
     return b;
   };
 
   const form = (
-    submit: string,
-    fields: HTMLElement[],
+    className: string,
+    children: Child[],
     onSubmit: (data: FormData, f: HTMLFormElement) => void,
   ) => {
-    const f = el(
-      "form",
-      { class: "systemya-account-form" },
-      ...fields,
-      el(
-        "button",
-        { type: "submit", class: "systemya-account-button primary" },
-        submit,
-      ),
-    );
+    const f = el("form", { class: className }, ...children);
     f.addEventListener("submit", (event) => {
       event.preventDefault();
       onSubmit(new FormData(f), f);
@@ -163,489 +194,898 @@ export function mountAccount(root: HTMLElement): void {
     return f;
   };
 
+  const submit = (label: string, className = "acct-pill") =>
+    el(
+      "button",
+      { type: "submit", class: className },
+      el("span", { class: "acct-label" }, label),
+    );
+
   const text = (data: FormData, name: string) => String(data.get(name) || "");
 
-  function signedOut(options: AuthOptions): Node[] {
-    if (resetToken) {
-      return [
-        el("h2", {}, "Choose a new password"),
+  const go = (next: Page) => {
+    error = "";
+    notice = "";
+    page = next;
+    void render();
+  };
+
+  function signIn(options: AuthOptions): HTMLElement {
+    const credentials = page === "login" || page === "register";
+    const title =
+      page === "register"
+        ? "Create a Fracital Account"
+        : page === "forgot"
+          ? "Reset your password"
+          : page === "reset"
+            ? "Choose a new password"
+            : terbium
+              ? "Sign in with Terbium"
+              : "Sign in to SystemYA";
+    const subtitle =
+      page === "forgot"
+        ? "We'll email you a link to choose a new password."
+        : page === "reset"
+          ? "Use at least 8 characters."
+          : terbium
+            ? "Use your Terbium Account email and password."
+            : "SystemYA uses Fracital Accounts. One account works on SystemYA, Fracital and the chat.";
+
+    const stack = el("div", { class: "acct-stack" }, banner);
+
+    if (credentials && !terbium) {
+      if (options.lastfm)
+        stack.append(
+          button(
+            page === "login" ? "Continue with Last.fm" : "Sign up with Last.fm",
+            (b) =>
+              run(b, () => connectLastfm("signin"), "", "Waiting for Last.fm…"),
+            "acct-lastfm",
+            "lastfm",
+          ),
+        );
+      if (options.social.length && oauthUsable(options)) {
+        const grid = el("div", { class: "acct-social" });
+        grid.style.gridTemplateColumns = `repeat(${Math.min(options.social.length, 3)}, minmax(0, 1fr))`;
+        for (const p of options.social)
+          grid.append(
+            button(
+              PROVIDERS[p].label,
+              (b) => run(b, () => connectSocial(p, "signin"), "", "Waiting…"),
+              `acct-provider acct-provider-${p}`,
+              PROVIDERS[p].icon,
+            ),
+          );
+        stack.append(grid);
+      }
+      if (page === "login" && (passkeysUsable(options) || options.terbium)) {
+        const alt = el("div", { class: "acct-alt" });
+        if (passkeysUsable(options))
+          alt.append(
+            button(
+              "Passkey",
+              (b) => run(b, () => signInWithPasskey(), "", "Waiting…"),
+              "acct-soft",
+              "fingerprint",
+            ),
+          );
+        if (options.terbium)
+          alt.append(
+            button(
+              "Terbium",
+              () => {
+                terbium = true;
+                error = "";
+                notice = "";
+                void render();
+              },
+              "acct-soft",
+              "cube",
+            ),
+          );
+        stack.append(alt);
+      }
+      stack.append(
+        el(
+          "div",
+          { class: "acct-divider" },
+          el("span"),
+          "or with email",
+          el("span"),
+        ),
+      );
+    }
+
+    const fields: Child[] = [];
+    if (page === "register") fields.push(field("Name", "text", "name", "name"));
+    if (page !== "reset")
+      fields.push(field("Email", "email", "email", "email"));
+    if (page !== "forgot")
+      fields.push(
+        field(
+          page === "reset" ? "New password" : "Password",
+          "password",
+          "password",
+          page === "login" ? "current-password" : "new-password",
+        ),
+      );
+    if (page === "reset")
+      fields.push(
+        field("Confirm password", "password", "confirm", "new-password"),
+      );
+    if (page === "login" && !terbium && options.mail)
+      fields.push(
+        button("Forgot password?", () => go("forgot"), "acct-forgot"),
+      );
+    fields.push(
+      submit(
+        page === "login"
+          ? "Sign in"
+          : page === "register"
+            ? "Create account"
+            : page === "forgot"
+              ? "Send reset link"
+              : "Change password",
+        "acct-submit",
+      ),
+    );
+
+    stack.append(
+      form("acct-form", fields, (data, f) => {
+        const email = text(data, "email");
+        const password = text(data, "password");
+        if (page === "forgot")
+          return run(
+            f,
+            () => requestPasswordReset(email),
+            "If an account uses that email, a reset link is on its way.",
+            "Loading…",
+          );
+        if (page === "reset")
+          return run(
+            f,
+            async () => {
+              if (password.length < 8)
+                throw new Error("Use at least 8 characters");
+              if (password !== text(data, "confirm"))
+                throw new Error("The passwords don't match");
+              await resetPassword(resetToken as string, password);
+              // Resetting signs out every session, this one included.
+              resetToken = null;
+              page = "login";
+              await refreshMe();
+            },
+            "Your password was changed. Sign in with the new one.",
+            "Loading…",
+          );
+        run(
+          f,
+          () =>
+            terbium
+              ? terbiumAuth(email, password, "signin")
+              : page === "login"
+                ? signInEmail(email, password)
+                : signUpEmail(text(data, "name"), email, password),
+          "",
+          "Loading…",
+        );
+      }),
+    );
+
+    if (terbium)
+      stack.append(
+        button(
+          "Use a Fracital Account instead",
+          () => {
+            terbium = false;
+            error = "";
+            void render();
+          },
+          "acct-back",
+        ),
+      );
+
+    const footer = el("div", { class: "acct-footer" });
+    if (page === "login" && !terbium)
+      footer.append(
+        el("span", {}, "Don't have an account?"),
+        button("Register", () => go("register"), "acct-footer-link"),
+      );
+    if (page !== "login")
+      footer.append(
+        el(
+          "span",
+          {},
+          page === "register" ? "Have an account?" : "Remembered it?",
+        ),
+        button("Sign in", () => go("login"), "acct-footer-link"),
+      );
+
+    return el(
+      "div",
+      { class: "acct-signin" },
+      el(
+        "div",
+        { class: "acct-head" },
+        systemyaMark(),
+        el("h1", {}, title),
+        el("p", {}, subtitle),
+      ),
+      stack,
+      footer.childElementCount ? footer : null,
+    );
+  }
+
+  const section = (title: string | null, ...children: Child[]) =>
+    el(
+      "section",
+      { class: "acct-section" },
+      title ? el("h2", {}, title) : null,
+      ...children,
+    );
+
+  /** Fracital's row: a round icon, a title with a detail line, and the row's actions. */
+  const row = (badge: Node, title: Child, detail: Child, ...actions: Child[]) =>
+    el(
+      "div",
+      { class: "acct-row" },
+      badge,
+      el(
+        "div",
+        { class: "acct-row-text" },
+        el("span", { class: "acct-row-title" }, title),
+        typeof detail === "string"
+          ? el("span", { class: "acct-row-detail" }, detail)
+          : detail,
+      ),
+      ...actions,
+    );
+
+  const badge = (name: IconName, brand = "") =>
+    el(
+      "div",
+      { class: brand ? `acct-badge acct-badge-${brand}` : "acct-badge" },
+      icon(name),
+    );
+
+  const state = (ok: boolean) =>
+    icon(
+      ok ? "check" : "warning",
+      ok ? "fa-icon acct-good" : "fa-icon acct-warn",
+    );
+
+  const profileLink = (url: string, label: string) =>
+    el(
+      "a",
+      {
+        class: "acct-row-detail acct-row-link",
+        href: url,
+        target: "_blank",
+        rel: "noopener noreferrer",
+      },
+      label,
+    );
+
+  const switchButton = (
+    on: boolean,
+    label: string,
+    onClick: (b: HTMLButtonElement) => void,
+  ) => {
+    const b = el(
+      "button",
+      { type: "button", class: "acct-switch" },
+      el("span"),
+    );
+    b.setAttribute("role", "switch");
+    b.setAttribute("aria-checked", String(on));
+    b.setAttribute("aria-label", label);
+    b.addEventListener("click", () => onClick(b));
+    return b;
+  };
+
+  const alert = (message: string, ...actions: Child[]) =>
+    el("div", { class: "acct-alert" }, el("span", {}, message), ...actions);
+
+  function profile(me: Me): HTMLElement {
+    const name = el("input", {
+      class: "acct-text",
+      name: "name",
+      autocomplete: "name",
+      maxLength: 50,
+      required: true,
+      value: me.user.name,
+    });
+    const username = el("input", {
+      name: "username",
+      autocomplete: "username",
+      maxLength: 30,
+      placeholder: "yourname",
+      spellcheck: false,
+      value: me.username ?? "",
+    });
+    const save = submit(profileSaved ? "Saved ✓" : "Save profile", "acct-save");
+    const dirty = () =>
+      name.value.trim() !== me.user.name ||
+      username.value.trim().toLowerCase() !== (me.username ?? "");
+    const sync = () => {
+      save.disabled = !dirty();
+      if (dirty()) {
+        profileSaved = false;
+        save.querySelector(".acct-label")!.textContent = "Save profile";
+      }
+    };
+    save.disabled = true;
+    name.addEventListener("input", sync);
+    username.addEventListener("input", () => {
+      username.value = username.value.replace(/[^a-zA-Z0-9_.]/g, "");
+      sync();
+    });
+    return form(
+      "acct-section",
+      [
+        el("h2", {}, "Profile"),
+        el(
+          "label",
+          { class: "acct-labelled" },
+          el("span", { class: "acct-caption" }, "Display name"),
+          name,
+        ),
+        el(
+          "label",
+          { class: "acct-labelled" },
+          el("span", { class: "acct-caption" }, "Username"),
+          el(
+            "div",
+            { class: "acct-text acct-at" },
+            el("span", {}, "@"),
+            username,
+          ),
+          el(
+            "span",
+            { class: "acct-hint" },
+            "3–30 characters: letters, numbers, _ and .",
+          ),
+        ),
+        save,
+      ],
+      (data, f) =>
+        run(
+          f,
+          async () => {
+            const handle = text(data, "username").trim().toLowerCase();
+            await updateProfile({
+              name: text(data, "name").trim(),
+              username: handle || null,
+            });
+            profileSaved = true;
+          },
+          "",
+          "Saving…",
+        ),
+    );
+  }
+
+  function services(me: Me, options: AuthOptions, canDisconnect: boolean) {
+    const out = section("Connected services");
+    const lastfm = me.lastfm;
+    if (options.lastfm || lastfm) {
+      out.append(
+        lastfm
+          ? row(
+              badge("lastfm", "lastfm"),
+              el(
+                "span",
+                { class: "acct-row-title-inner" },
+                "Last.fm ",
+                state(!lastfm.needsReconnect),
+              ),
+              profileLink(
+                lastfm.url,
+                `@${lastfm.username} · ${count(lastfm.playcount)} scrobbles`,
+              ),
+              canDisconnect
+                ? button("Disconnect", (b) =>
+                    run(b, () => disconnectProvider("lastfm")),
+                  )
+                : el(
+                    "span",
+                    { class: "acct-note" },
+                    "Your only sign-in: add another to disconnect",
+                  ),
+            )
+          : row(
+              badge("lastfm", "lastfm"),
+              "Last.fm",
+              "Build your library, see your play counts, and scrobble what you play.",
+              Object.assign(
+                button(
+                  options.lastfm && me.lastfmAvailable !== false
+                    ? "Connect"
+                    : "Unavailable",
+                  (b) =>
+                    run(
+                      b,
+                      () => connectLastfm("link"),
+                      "Last.fm connected.",
+                      "Waiting…",
+                    ),
+                  "acct-pill acct-pill-lastfm",
+                ),
+                { disabled: !options.lastfm || me.lastfmAvailable === false },
+              ),
+            ),
+      );
+      if (lastfm?.needsReconnect)
+        out.append(
+          alert(
+            "Last.fm access was removed. Reconnect to keep scrobbling and liking songs. Plays from meanwhile are saved and sent after you reconnect.",
+            button(
+              "Reconnect",
+              (b) =>
+                run(
+                  b,
+                  () => connectLastfm("link"),
+                  "Last.fm reconnected.",
+                  "Waiting…",
+                ),
+              "acct-pill acct-pill-lastfm",
+            ),
+          ),
+        );
+    }
+
+    const lb = me.listenbrainz ?? null;
+    out.append(
+      lb
+        ? row(
+            badge("music", "listenbrainz"),
+            el(
+              "span",
+              { class: "acct-row-title-inner" },
+              "ListenBrainz ",
+              state(!lb.needsReconnect),
+            ),
+            profileLink(
+              lb.url,
+              `${lb.username} · ${count(lb.listenCount)} listens`,
+            ),
+            button("Disconnect", (b) => run(b, () => disconnectListenbrainz())),
+          )
+        : row(
+            badge("music", "listenbrainz"),
+            "ListenBrainz",
+            me.lastfm
+              ? "Also send your listens to ListenBrainz, the open alternative to Last.fm."
+              : "The open alternative to Last.fm: build your library and save what you play.",
+            lbForm
+              ? null
+              : button(
+                  "Connect",
+                  () => {
+                    lbForm = true;
+                    void render();
+                  },
+                  "acct-pill acct-pill-listenbrainz",
+                ),
+          ),
+    );
+    if (lbForm || lb?.needsReconnect) {
+      const token = el("input", {
+        class: "acct-text",
+        name: "token",
+        autocomplete: "off",
+        maxLength: 100,
+        required: true,
+        spellcheck: false,
+        placeholder: "Paste your user token",
+      });
+      out.append(
         form(
-          "Save password",
+          "acct-indent",
           [
-            field(
-              "New password",
-              input("password", "password", "new-password"),
+            el(
+              "span",
+              { class: "acct-hint" },
+              lb?.needsReconnect
+                ? "ListenBrainz stopped accepting your token, probably because it was reset. Paste the new one to keep sending listens. Listens from meanwhile are saved and sent after you reconnect. "
+                : "Copy the user token from your ListenBrainz settings page and paste it here. ",
+              el(
+                "a",
+                {
+                  href: "https://listenbrainz.org/settings/",
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                },
+                "Open ListenBrainz settings",
+              ),
+            ),
+            el(
+              "div",
+              { class: "acct-actions" },
+              token,
+              submit(lb ? "Reconnect" : "Connect"),
+              lbForm && !lb
+                ? button("Cancel", () => {
+                    lbForm = false;
+                    void render();
+                  })
+                : null,
             ),
           ],
           (data, f) =>
             run(
               f,
               async () => {
-                await resetPassword(
-                  resetToken as string,
-                  text(data, "password"),
-                );
-                resetToken = null;
-                view = "signin";
+                await connectListenbrainz(text(data, "token").trim());
+                lbForm = false;
               },
-              "Your password is changed. Sign in with it.",
-            ),
-        ),
-      ];
-    }
-
-    const tabs = el(
-      "div",
-      { class: "systemya-account-tabs" },
-      ...(["signin", "register"] as const).map((v) => {
-        const b = button(v === "signin" ? "Sign in" : "Create account", () => {
-          view = v;
-          void render();
-        });
-        b.setAttribute("aria-pressed", String(view === v));
-        return b;
-      }),
-    );
-
-    const out: Node[] = [
-      el(
-        "p",
-        {},
-        "SystemYA uses Fracital Accounts. One account works on SystemYA, Fracital and the chat.",
-      ),
-    ];
-
-    if (view === "forgot") {
-      out.push(
-        el("h2", {}, "Reset your password"),
-        form(
-          "Email me a link",
-          [field("Email", input("email", "email", "email"))],
-          (data, f) =>
-            run(
-              f,
-              () => requestPasswordReset(text(data, "email")),
-              "If that address has an account, a reset link is on its way.",
-            ),
-        ),
-        button(
-          "Back to sign in",
-          () => {
-            view = "signin";
-            void render();
-          },
-          "link",
-        ),
-      );
-      return out;
-    }
-
-    out.push(tabs);
-    if (view === "signin") {
-      out.push(
-        form(
-          "Sign in",
-          [
-            field("Email", input("email", "email", "email")),
-            field(
-              "Password",
-              input("password", "password", "current-password"),
-            ),
-          ],
-          (data, f) =>
-            run(f, () =>
-              signInEmail(text(data, "email"), text(data, "password")),
+              lb ? "ListenBrainz reconnected." : "ListenBrainz connected.",
+              "Checking…",
             ),
         ),
       );
-      if (options.mail)
-        out.push(
-          button(
-            "Forgot your password?",
-            () => {
-              view = "forgot";
-              void render();
-            },
-            "link",
+    }
+
+    const presence = me.discordPresence;
+    if (presence) {
+      const canConnect = oauthUsable(options);
+      const connect = (b: HTMLButtonElement) =>
+        run(
+          b,
+          () => connectDiscordPresence(),
+          "Your Discord status will show what you're listening to.",
+          "Waiting…",
+        );
+      out.append(
+        row(
+          badge("discord", "discord"),
+          el(
+            "span",
+            { class: "acct-row-title-inner" },
+            "Discord status ",
+            presence.connected
+              ? presence.error
+                ? state(false)
+                : presence.enabled
+                  ? state(true)
+                  : null
+              : null,
+          ),
+          presence.connected
+            ? "Shows the song you're playing here as your Discord status."
+            : !canConnect
+              ? "Open your account on Fracital to connect this."
+              : presence.discord
+                ? "Show what you're listening to on your Discord profile."
+                : "Show what you're listening to on your Discord profile. This also adds Discord as a way to sign in.",
+          presence.connected
+            ? switchButton(
+                presence.enabled,
+                "Show what you're listening to on Discord",
+                (b) => run(b, () => setDiscordPresence(!presence.enabled)),
+              )
+            : canConnect
+              ? button("Connect", connect, "acct-pill acct-pill-discord")
+              : null,
+        ),
+      );
+      if (presence.connected && presence.error)
+        out.append(
+          alert(
+            presence.error,
+            canConnect
+              ? button("Reconnect", connect, "acct-pill acct-pill-discord")
+              : null,
           ),
         );
-    } else {
-      out.push(
-        form(
-          "Create account",
-          [
-            field("Name", input("text", "name", "name")),
-            field("Email", input("email", "email", "email")),
-            field(
-              "Password (8 or more characters)",
-              input("password", "password", "new-password"),
-            ),
-          ],
-          (data, f) =>
-            run(f, () =>
-              signUpEmail(
-                text(data, "name"),
-                text(data, "email"),
-                text(data, "password"),
-              ),
-            ),
-        ),
-      );
     }
-
-    const others = el("div", { class: "systemya-account-providers" });
-    if (oauthUsable(options))
-      for (const p of options.social)
-        others.append(
-          button(`Continue with ${PROVIDER_NAMES[p]}`, (b) =>
-            run(b, () => connectSocial(p, "signin")),
-          ),
-        );
-    if (options.lastfm)
-      others.append(
-        button("Continue with Last.fm", (b) =>
-          run(b, () => connectLastfm("signin")),
-        ),
-      );
-    if (passkeysUsable(options))
-      others.append(
-        button("Sign in with a passkey", (b) =>
-          run(b, () => signInWithPasskey()),
-        ),
-      );
-    if (others.childElementCount) out.push(el("h2", {}, "Or"), others);
-
-    if (options.terbium)
-      out.push(
-        el(
-          "details",
-          { class: "systemya-account-terbium" },
-          el("summary", {}, "Sign in with a Terbium Account"),
-          form(
-            "Sign in with Terbium",
-            [
-              field("Terbium email", input("email", "email", "email")),
-              field(
-                "Terbium password",
-                input("password", "password", "current-password"),
-              ),
-            ],
-            (data, f) =>
-              run(f, () =>
-                terbiumAuth(
-                  text(data, "email"),
-                  text(data, "password"),
-                  "signin",
-                ),
-              ),
-          ),
-        ),
-      );
     return out;
   }
 
-  function signedIn(me: Me, options: AuthOptions): Node[] {
+  function methods(me: Me, options: AuthOptions, signInMethods: number) {
+    const out = section("Sign-in methods");
     const providers = new Set(me.providers ?? []);
-    const out: Node[] = [];
-
-    const avatar = me.user.image || me.lastfm?.image || "";
-    out.push(
-      el(
-        "section",
-        { class: "systemya-account-profile" },
-        avatar
-          ? el("img", {
-              src: avatar,
-              alt: "",
-              width: 64,
-              height: 64,
-              referrerPolicy: "no-referrer",
-            })
-          : null,
-        el(
-          "div",
-          {},
-          el("strong", {}, me.user.name),
-          me.username ? el("div", {}, `@${me.username}`) : null,
-          me.user.email ? el("div", {}, me.user.email) : null,
-        ),
-      ),
-    );
-
-    if (me.user.email && !me.user.emailVerified && options.mail)
-      out.push(
-        el(
-          "p",
-          {},
-          "Your email isn't verified yet. ",
-          button(
-            "Send the link again",
-            (b) =>
-              run(
-                b,
-                () => sendVerificationEmail(me.user.email as string),
-                "Check your inbox for the link.",
-              ),
-            "link",
-          ),
-        ),
+    const email = me.user.email;
+    // The only way into the account, with no email to set a password through: removing it would lock the account.
+    const last = signInMethods <= 1 && !(email && options.mail);
+    const disconnect = (label = "Disconnect", action: () => Promise<void>) =>
+      Object.assign(
+        button(label, (b) => run(b, action)),
+        { disabled: last },
       );
 
-    out.push(
-      el("h2", {}, "Profile"),
-      form(
-        "Save",
-        [
-          field(
-            "Display name",
-            Object.assign(input("text", "name", "name"), {
-              value: me.user.name,
-            }),
-          ),
-          field(
-            "Username",
-            Object.assign(input("text", "username", "username", false), {
-              value: me.username || "",
-            }),
-          ),
-        ],
-        (data, f) =>
-          run(
-            f,
-            () =>
-              updateProfile({
-                name: text(data, "name").trim(),
-                username: text(data, "username").trim() || null,
-              }),
-            "Saved.",
-          ),
-      ),
-    );
-
-    const rows = el("ul", { class: "systemya-account-connections" });
-    const row = (
-      name: string,
-      connected: boolean,
-      connect: (b: HTMLButtonElement) => void,
-      disconnect: (b: HTMLButtonElement) => void,
-      detail = "",
-    ) =>
-      rows.append(
-        el(
-          "li",
-          {},
-          el("span", {}, name, detail ? el("small", {}, ` ${detail}`) : null),
-          connected
-            ? button("Disconnect", disconnect)
-            : button("Connect", connect),
-        ),
-      );
-    if (oauthUsable(options))
-      for (const p of options.social)
+    if (email) {
+      out.append(
         row(
-          PROVIDER_NAMES[p],
-          providers.has(p),
-          (b) => run(b, () => connectSocial(p, "link")),
-          (b) => run(b, () => disconnectProvider(p)),
-        );
-    if (options.lastfm || me.lastfm)
-      row(
-        "Last.fm",
-        !!me.lastfm,
-        (b) => run(b, () => connectLastfm("link")),
-        (b) => run(b, () => disconnectProvider("lastfm")),
-        me.lastfm
-          ? me.lastfm.needsReconnect
-            ? "(reconnect needed)"
-            : me.lastfm.username
-          : "",
-      );
-    if (options.terbium && providers.has("terbium"))
-      row(
-        "Terbium",
-        true,
-        () => {},
-        (b) => run(b, () => disconnectProvider("terbium")),
-      );
-    if (me.listenbrainz)
-      row(
-        "ListenBrainz",
-        true,
-        () => {},
-        (b) => run(b, () => disconnectListenbrainz()),
-        me.listenbrainz.username,
-      );
-    out.push(el("h2", {}, "Connected sign-ins"), rows);
-
-    if (!me.listenbrainz)
-      out.push(
-        el(
-          "details",
-          {},
-          el("summary", {}, "Connect ListenBrainz"),
-          form(
-            "Connect",
-            [
-              field(
-                "User token from listenbrainz.org/settings",
-                input("password", "token", "off"),
-              ),
-            ],
-            (data, f) =>
-              run(f, () => connectListenbrainz(text(data, "token").trim())),
-          ),
+          badge("key"),
+          "Password",
+          me.hasPassword ? email : "Not set",
+          pwForm
+            ? null
+            : button(me.hasPassword ? "Change" : "Set password", () => {
+                pwForm = true;
+                void render();
+              }),
         ),
       );
-    if (options.terbium && !providers.has("terbium"))
-      out.push(
-        el(
-          "details",
-          {},
-          el("summary", {}, "Connect a Terbium Account"),
+      if (pwForm)
+        out.append(
           form(
-            "Connect",
+            "acct-indent",
             [
-              field("Terbium email", input("email", "email", "email")),
-              field(
-                "Terbium password",
-                input("password", "password", "current-password"),
+              me.hasPassword
+                ? field(
+                    "Current password",
+                    "password",
+                    "current",
+                    "current-password",
+                  )
+                : null,
+              field("New password", "password", "next", "new-password"),
+              el(
+                "div",
+                { class: "acct-actions" },
+                submit(me.hasPassword ? "Change password" : "Set password"),
+                me.hasPassword && options.mail
+                  ? button("Email me a reset link", (b) =>
+                      run(
+                        b,
+                        () => requestPasswordReset(email),
+                        `We emailed a link to ${email} to reset your password.`,
+                        "Sending…",
+                      ),
+                    )
+                  : null,
+                button("Cancel", () => {
+                  pwForm = false;
+                  void render();
+                }),
               ),
+              el("span", { class: "acct-hint" }, "At least 8 characters."),
             ],
             (data, f) =>
-              run(f, () =>
-                terbiumAuth(
-                  text(data, "email"),
-                  text(data, "password"),
-                  "link",
-                ),
+              run(
+                f,
+                async () => {
+                  const next = text(data, "next");
+                  if (next.length < 8)
+                    throw new Error("Use at least 8 characters");
+                  if (me.hasPassword)
+                    await changeAccountPassword(text(data, "current"), next);
+                  else await setAccountPassword(next);
+                  pwForm = false;
+                },
+                me.hasPassword
+                  ? "Password changed. Other devices were signed out."
+                  : "Password set. You can now sign in with your email and password.",
+                "Saving…",
               ),
-          ),
-        ),
-      );
-
-    const presence = me.discordPresence;
-    if (presence && oauthUsable(options)) {
-      out.push(el("h2", {}, "Discord status"));
-      if (!presence.connected)
-        out.push(
-          el(
-            "p",
-            {},
-            "Show what you listen to on your Discord profile. ",
-            button(
-              "Allow it",
-              (b) => run(b, () => connectDiscordPresence()),
-              "link",
-            ),
-          ),
-        );
-      else
-        out.push(
-          el(
-            "p",
-            {},
-            presence.enabled ? "On. " : "Off. ",
-            presence.error ? `${presence.error} ` : "",
-            button(
-              presence.enabled ? "Turn off" : "Turn on",
-              (b) => run(b, () => setDiscordPresence(!presence.enabled)),
-              "link",
-            ),
           ),
         );
     }
 
-    out.push(el("h2", {}, "Password"));
-    if (me.hasPassword)
-      out.push(
-        form(
-          "Change password",
-          [
-            field(
-              "Current password",
-              input("password", "current", "current-password"),
-            ),
-            field("New password", input("password", "next", "new-password")),
-          ],
-          (data, f) =>
-            run(
-              f,
-              () =>
-                changeAccountPassword(
-                  text(data, "current"),
-                  text(data, "next"),
-                ),
-              "Password changed. Other devices were signed out.",
-            ),
+    const oauthOk = oauthUsable(options);
+    for (const p of options.social) {
+      const linked = providers.has(p);
+      out.append(
+        row(
+          badge(PROVIDERS[p].icon),
+          PROVIDERS[p].label,
+          linked ? "Connected" : null,
+          linked
+            ? disconnect("Disconnect", () => disconnectProvider(p))
+            : oauthOk
+              ? button("Connect", (b) =>
+                  run(
+                    b,
+                    () => connectSocial(p, "link"),
+                    `${PROVIDERS[p].label} connected.`,
+                    "Waiting…",
+                  ),
+                )
+              : null,
         ),
       );
-    else
-      out.push(
-        form(
-          "Set password",
-          [field("New password", input("password", "next", "new-password"))],
-          (data, f) =>
-            run(
-              f,
-              () => setAccountPassword(text(data, "next")),
-              "Password set.",
-            ),
+    }
+
+    if (options.terbium || providers.has("terbium")) {
+      const linked = providers.has("terbium");
+      out.append(
+        row(
+          badge("cube"),
+          "Terbium",
+          linked ? "Connected" : null,
+          linked
+            ? disconnect("Disconnect", () => disconnectProvider("terbium"))
+            : terbiumForm
+              ? null
+              : button("Connect", () => {
+                  terbiumForm = true;
+                  void render();
+                }),
+        ),
+      );
+      if (terbiumForm && !linked)
+        out.append(
+          form(
+            "acct-indent",
+            [
+              field("Terbium email", "email", "email", "email"),
+              field(
+                "Terbium password",
+                "password",
+                "password",
+                "current-password",
+              ),
+              el(
+                "div",
+                { class: "acct-actions" },
+                submit("Connect"),
+                button("Cancel", () => {
+                  terbiumForm = false;
+                  void render();
+                }),
+              ),
+            ],
+            (data, f) =>
+              run(
+                f,
+                async () => {
+                  await terbiumAuth(
+                    text(data, "email"),
+                    text(data, "password"),
+                    "link",
+                  );
+                  terbiumForm = false;
+                },
+                "Terbium connected.",
+                "Checking…",
+              ),
+          ),
+        );
+    }
+
+    const canPasskey = passkeysUsable(options);
+    const saved = me.passkeys ?? 0;
+    if (canPasskey || saved)
+      out.append(
+        row(
+          badge("fingerprint"),
+          saved ? "Passkeys" : "Passkey",
+          saved
+            ? `${saved} saved`
+            : "Sign in with your fingerprint, face or device PIN.",
+          canPasskey
+            ? button("Add", (b) =>
+                run(b, () => addPasskey(), "Passkey added.", "Waiting…"),
+              )
+            : null,
         ),
       );
 
-    if (passkeysUsable(options))
-      out.push(
-        el("h2", {}, "Passkeys"),
+    if (last && (saved > 0 || [...providers].some((p) => p !== "credential")))
+      out.append(
         el(
-          "p",
-          {},
-          `${me.passkeys ?? 0} saved. `,
-          button(
-            "Add a passkey",
-            (b) => run(b, () => addPasskey(), "Passkey added."),
-            "link",
-          ),
+          "span",
+          { class: "acct-hint" },
+          "Add another sign-in method before removing this one.",
         ),
       );
 
     if (options.hub) {
-      const hubRow = el(
-        "p",
-        { class: "systemya-account-hub" },
-        "Checking whether this browser stays signed in on Fracital's sites...",
+      const detail = el(
+        "span",
+        { class: "acct-row-detail" },
+        "Our other sites sign this browser in automatically.",
       );
-      out.push(el("h2", {}, "Fracital's sites"), hubRow);
-      void crossSiteStatus().then((state) => {
-        if (!state) {
-          hubRow.textContent =
-            "This browser can't stay signed in across Fracital's sites (the sign-in hub isn't reachable).";
+      const toggle = switchButton(false, "Stay signed in across sites", (b) =>
+        run(b, async () => {
+          if (b.getAttribute("aria-checked") === "true")
+            await unlinkCrossSite(true);
+          else if (!(await linkCrossSite("toggle")))
+            throw new Error(
+              "This browser blocks it (third-party cookies are off), or the sign-in hub can't be reached.",
+            );
+        }),
+      );
+      toggle.disabled = true;
+      out.append(
+        row(badge("refresh"), "Stay signed in across sites", detail, toggle),
+      );
+      void crossSiteStatus().then((s) => {
+        if (!s) {
+          detail.textContent = "Unavailable in this browser.";
+          toggle.remove();
           return;
         }
-        hubRow.replaceChildren(
-          state.linked
-            ? "This browser stays signed in on Fracital's sites. "
-            : "This browser signs in on each site separately. ",
-          button(
-            state.linked ? "Turn off" : "Turn on",
-            (b) =>
-              run(b, async () => {
-                if (state.linked) await unlinkCrossSite(true);
-                else if (!(await linkCrossSite("toggle")))
-                  throw new Error(
-                    "This browser blocks it, or the sign-in hub can't be reached.",
-                  );
-              }),
-            "link",
-          ),
-        );
+        toggle.setAttribute("aria-checked", String(s.linked));
+        toggle.disabled = false;
       });
     }
+    return out;
+  }
 
-    out.push(
-      el(
-        "p",
-        {},
-        button("Sign out", (b) => run(b, () => signOut())),
+  function manage(me: Me, options: AuthOptions): HTMLElement {
+    const providers = new Set(me.providers ?? []);
+    const signInMethods = providers.size + (me.passkeys ?? 0);
+    // A real email with mail on is a way back in too: a reset link sets a password.
+    const emailRecovery = !!me.user.email && options.mail;
+    const avatar = me.user.image || me.lastfm?.image || "";
+
+    const out = el(
+      "div",
+      { class: "acct-manage" },
+      section(
+        null,
+        avatar
+          ? el("img", {
+              class: "acct-avatar",
+              src: avatar,
+              alt: "",
+              referrerPolicy: "no-referrer",
+            })
+          : icon("user", "acct-avatar acct-avatar-blank"),
+        el(
+          "div",
+          { class: "acct-hero-text" },
+          el("h1", {}, me.user.name),
+          me.username
+            ? el("span", { class: "acct-handle" }, `@${me.username}`)
+            : null,
+          el(
+            "span",
+            { class: "acct-muted" },
+            me.user.email ??
+              (me.lastfm
+                ? `Signed in with Last.fm (@${me.lastfm.username})`
+                : ""),
+          ),
+        ),
+      ),
+      banner,
+    );
+    out.firstElementChild!.classList.add("acct-hero");
+
+    if (me.user.email && !me.user.emailVerified && options.mail)
+      out.append(
+        el(
+          "section",
+          { class: "acct-verify" },
+          icon("warning", "fa-icon acct-warn"),
+          el(
+            "div",
+            { class: "acct-row-text" },
+            el("span", { class: "acct-row-title" }, "Verify your email"),
+            el(
+              "span",
+              { class: "acct-row-detail" },
+              "We sent a link to your email. Verifying lets you reset your password if you forget it.",
+            ),
+          ),
+          button("Resend", (b) =>
+            run(
+              b,
+              () => sendVerificationEmail(me.user.email as string),
+              "Verification email sent. Check your inbox.",
+              "Sending…",
+            ),
+          ),
+        ),
+      );
+
+    out.append(
+      profile(me),
+      services(
+        me,
+        options,
+        signInMethods > 1 || !providers.has("lastfm") || emailRecovery,
+      ),
+      methods(me, options, signInMethods),
+      button(
+        "Sign out",
+        (b) => run(b, () => signOut()),
+        "acct-signout",
+        "signout",
       ),
     );
     return out;
@@ -655,7 +1095,10 @@ export function mountAccount(root: HTMLElement): void {
     showStatus();
     const [options, me] = await Promise.all([getAuthOptions(), getMe()]);
     if (!host?.isConnected) return;
-    body.replaceChildren(...(me ? signedIn(me, options) : signedOut(options)));
+    // A reset link works signed in or out.
+    const signedIn = me && !resetToken;
+    card.dataset.state = signedIn ? "in" : "out";
+    card.replaceChildren(signedIn ? manage(me, options) : signIn(options));
   }
 
   // ClientRouter swaps pages without a reload: stop listening once this page goes away.
@@ -669,7 +1112,7 @@ export function mountAccount(root: HTMLElement): void {
   window.addEventListener(CROSS_SITE_EVENT, () => void render(), {
     signal: stop.signal,
   });
-  body.textContent = "Loading...";
+  card.replaceChildren(el("p", { class: "acct-loading" }, "Loading…"));
   void render();
 }
 

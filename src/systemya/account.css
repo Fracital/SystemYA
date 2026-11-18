@@ -1,107 +1,758 @@
-/* /account/: Fracital Accounts, styled like the Theatre's SDK catalog. */
+/* /account/: Fracital Accounts in a card laid out like Fracital's about:account panel. Fracital's
+   tokens (dark theme) and a light counterpart, scoped to this page so the 2022 site keeps its own. */
 #root[data-page="account"] .systemya-account {
-  max-width: 560px;
-  margin: 36px auto 56px;
-  padding: 0 22px;
+  --acct-panel: #f5f5f7;
+  --acct-edge: #00000012;
+  --acct-raised: #ffffff;
+  --acct-raised-edge: #0000000f;
+  --acct-text: #000000db;
+  --acct-text-2: #000000a5;
+  --acct-text-3: #00000091;
+  --acct-soft: #0000000d;
+  --acct-soft-hover: #00000017;
+  --acct-switch-off: #00000026;
+  --acct-switch-off-hover: #00000033;
+  --acct-input: #ffffff;
+  --acct-input-edge: #00000026;
+  --acct-field: #0000000a;
+  --acct-field-focus: #00000012;
+  --acct-solid: #111111;
+  --acct-solid-text: #ffffff;
+  --acct-accent: var(--blue, #0078d4);
+  --acct-accent-hover: var(--blue-accent-hover, #006cbe);
+  --acct-submit-rest: 1;
+  --acct-google-edge: 0 0 0 1px #dadce0 inset;
+  --acct-red: #b91c1c;
+  --acct-red-bg: #ef44441a;
+  --acct-red-edge: #ef444466;
+  --acct-green: #15803d;
+  --acct-green-bg: #22c55e1a;
+  --acct-green-edge: #22c55e59;
+  --acct-amber: #d97706;
+  --acct-amber-bg: #f59e0b1a;
+  --acct-amber-edge: #f59e0b4d;
+
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: none;
+  margin: 40px 0 56px;
+  padding: 0 16px;
 }
-.systemya-account h2 {
-  margin: 28px 0 10px;
-  font-size: 1.15em;
+#root[data-page="account"][data-theme="dark"] .systemya-account {
+  --acct-panel: #232323;
+  --acct-edge: #ffffff18;
+  --acct-raised: #2a2a2a;
+  --acct-raised-edge: transparent;
+  --acct-text: #ffffffdb;
+  --acct-text-2: #ffffffa5;
+  --acct-text-3: #ffffff80;
+  --acct-soft: #ffffff15;
+  --acct-soft-hover: #ffffff25;
+  --acct-switch-off: #ffffff15;
+  --acct-switch-off-hover: #ffffff25;
+  --acct-input: #00000038;
+  --acct-input-edge: #ffffff28;
+  --acct-field: #ffffff10;
+  --acct-field-focus: #ffffff18;
+  --acct-solid: #ffffff;
+  --acct-solid-text: #000000;
+  --acct-google-edge: none;
+  --acct-accent-hover: var(--acct-accent);
+  --acct-submit-rest: 0.8;
+  --acct-red: #fca5a5;
+  --acct-red-bg: #ef444433;
+  --acct-red-edge: #ef444480;
+  --acct-green: #86efac;
+  --acct-green-bg: #22c55e26;
+  --acct-green-edge: #22c55e66;
+  --acct-amber: #fbbf24;
 }
-.systemya-account-status {
-  min-height: 1.5em;
-}
-.systemya-account-status[data-kind="error"] {
-  color: #c43d3d;
-}
-.systemya-account-form {
-  display: grid;
-  gap: 12px;
-  margin: 12px 0;
-}
-.systemya-account-field {
-  display: grid;
-  gap: 5px;
-}
-.systemya-account-field input {
-  padding: 10px 11px;
-  border: 1px solid currentColor;
-  border-radius: 5px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  width: auto;
-}
-.systemya-account-button {
-  justify-self: start;
+
+/* The 2022 stylesheet sizes every button and input; start these from nothing. */
+.systemya-account :where(button, input) {
+  box-sizing: border-box;
   width: auto;
   height: auto;
   margin: 0;
-  background: transparent;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
   color: inherit;
-  border: 1px solid currentColor;
-  border-radius: 5px;
-  padding: 8px 14px;
   font: inherit;
-  cursor: pointer;
-  display: inline-flex;
+  letter-spacing: inherit;
+  text-align: inherit;
 }
-.systemya-account-button.primary {
-  background: var(--blue, #0078d4);
-  border-color: var(--blue, #0078d4);
+.systemya-account :where(button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  line-height: 1;
+  transition:
+    opacity 150ms,
+    filter 150ms,
+    background-color 150ms,
+    color 150ms;
+}
+.systemya-account :where(button:disabled) {
+  cursor: default;
+}
+.systemya-account button:focus-visible,
+.systemya-account a:focus-visible {
+  outline: 2px solid var(--acct-accent);
+  outline-offset: 2px;
+}
+.systemya-account .fa-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.systemya-account a {
+  color: inherit;
+}
+
+.acct-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 448px;
+  padding: 24px 32px;
+  border-radius: 16px;
+  background: var(--acct-panel);
+  box-shadow: inset 0 0 0 2px var(--acct-edge);
+  color: var(--acct-text);
+  font-size: 16px;
+  line-height: 1.5;
+  text-align: left;
+}
+.acct-card[data-state="in"] {
+  max-width: 560px;
+  padding: 24px;
+}
+.acct-loading {
+  margin: 48px 0;
+  text-align: center;
+  color: var(--acct-text-3);
+}
+
+/* Banners (Fracital's Banner). */
+.acct-banner {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--acct-green-edge);
+  border-radius: 6px;
+  background: var(--acct-green-bg);
+  color: var(--acct-green);
+  font-size: 14px;
+  line-height: 20px;
+}
+.acct-banner[data-kind="error"] {
+  border-color: var(--acct-red-edge);
+  background: var(--acct-red-bg);
+  color: var(--acct-red);
+}
+.acct-banner[hidden] {
+  display: none;
+}
+
+/* Signed out: SignIn. */
+.acct-signin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.acct-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.acct-logo {
+  width: 56px;
+  height: 56px;
+  color: var(--acct-text);
+}
+.acct-head h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+}
+.acct-head p {
+  max-width: 384px;
+  margin: 0;
+  color: var(--acct-text-3);
+  font-size: 14px;
+  line-height: 20px;
+}
+.acct-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 384px;
+}
+.acct-lastfm,
+.acct-provider,
+.acct-soft,
+.acct-submit {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.systemya-account .acct-lastfm {
+  background: #d51007;
   color: #fff;
 }
-.systemya-account-button.link {
-  border: 0;
-  padding: 0;
-  text-decoration: underline;
-  color: var(--blue-link, #0067b8);
+.acct-lastfm .fa-icon,
+.acct-soft .fa-icon {
+  width: 20px;
+  height: 20px;
 }
-.systemya-account-button:disabled {
-  cursor: default;
-  opacity: 0.5;
+.acct-lastfm:hover:not(:disabled),
+.acct-provider:hover:not(:disabled) {
+  filter: brightness(1.1);
 }
-.systemya-account-tabs {
-  display: flex;
-  gap: 8px;
-  margin: 18px 0 4px;
+.acct-lastfm:disabled,
+.acct-provider:disabled,
+.acct-soft:disabled {
+  opacity: 0.6;
 }
-.systemya-account-tabs [aria-pressed="true"] {
-  background: var(--accent, #eee);
-}
-.systemya-account-providers {
+.acct-social {
   display: grid;
   gap: 8px;
+  width: 100%;
 }
-.systemya-account-providers .systemya-account-button {
-  justify-self: stretch;
-  justify-content: center;
+.acct-provider {
+  min-width: 0;
+  font-size: 14px;
 }
-.systemya-account-profile {
+.acct-provider .acct-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.systemya-account .acct-provider-google {
+  background: #fff;
+  color: #1f1f1f;
+  box-shadow: var(--acct-google-edge);
+}
+.systemya-account .acct-provider-discord {
+  background: #5865f2;
+  color: #fff;
+}
+.systemya-account .acct-provider-github {
+  background: #24292f;
+  color: #fff;
+}
+.systemya-account .acct-provider-microsoft {
+  background: #2f2f2f;
+  color: #fff;
+}
+.acct-alt {
   display: flex;
-  gap: 14px;
-  align-items: center;
+  gap: 8px;
+  width: 100%;
 }
-.systemya-account-profile img {
+.acct-soft {
+  flex: 1;
+  font-size: 14px;
+}
+.systemya-account .acct-soft,
+.systemya-account .acct-pill {
+  background: var(--acct-soft);
+}
+.systemya-account .acct-soft:hover:not(:disabled),
+.systemya-account .acct-pill:hover:not(:disabled) {
+  background: var(--acct-soft-hover);
+}
+.acct-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  color: var(--acct-text-3);
+  font-size: 12px;
+  line-height: 16px;
+}
+.acct-divider span {
+  flex: 1;
+  height: 1px;
+  background: var(--acct-text-3);
+  opacity: 0.3;
+}
+.acct-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Fracital's Input: the label sits in the box until there is text. */
+.acct-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.systemya-account .acct-field input {
+  width: 100%;
+  height: 44px;
+  padding: 8px 8px 8px 12px;
+  border-radius: 8px;
+  background: var(--acct-input);
+  box-shadow: inset 0 0 1px 2px var(--acct-input-edge);
+  color: var(--acct-text);
+  font-size: 20px;
+  outline: none;
+  transition: box-shadow 150ms;
+}
+.systemya-account .acct-field input:focus {
+  box-shadow: inset 0 0 1px 2px var(--acct-accent);
+}
+.acct-field input::placeholder {
+  color: transparent;
+}
+.acct-field span {
+  position: absolute;
+  left: 12px;
+  font-weight: 500;
+  line-height: 1;
+  opacity: 0.7;
+  pointer-events: none;
+  transition:
+    opacity 150ms,
+    transform 150ms 150ms;
+}
+.acct-field input:not(:placeholder-shown) + span {
+  opacity: 0;
+  transform: translateX(-12px);
+}
+.acct-forgot {
+  align-self: flex-end;
+  margin-top: -4px;
+  color: var(--acct-text-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+.acct-forgot:hover,
+.acct-back:hover {
+  color: var(--acct-text);
+}
+.systemya-account .acct-submit {
+  background: var(--acct-accent);
+  color: #fff;
+  opacity: var(--acct-submit-rest);
+}
+.systemya-account .acct-submit:hover:not(:disabled) {
+  opacity: 1;
+  background: var(--acct-accent-hover);
+}
+.systemya-account .acct-submit:disabled {
+  opacity: 0.5;
+}
+.acct-back {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+.acct-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 20px;
+}
+.acct-footer > span {
+  opacity: 0.7;
+}
+.acct-footer-link {
+  font-weight: 600;
+  opacity: 0.85;
+}
+.acct-footer-link:hover {
+  opacity: 1;
+}
+
+/* Signed in: Manage. */
+.acct-manage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.acct-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--acct-raised);
+  box-shadow: inset 0 0 0 1px var(--acct-raised-edge);
+}
+.acct-section h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+.acct-hero {
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+.acct-avatar {
+  flex: none;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   object-fit: cover;
 }
-.systemya-account-connections {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 8px;
+.acct-avatar-blank {
+  color: var(--acct-text-2);
 }
-.systemya-account-connections li {
+.acct-hero-text,
+.acct-row-text {
   display: flex;
-  justify-content: space-between;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.acct-hero-text h1 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-handle,
+.acct-muted {
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-handle {
+  color: var(--acct-text-2);
+  font-weight: 600;
+}
+.acct-muted {
+  color: var(--acct-text-3);
+}
+.acct-verify {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--acct-amber-edge);
+  border-radius: 16px;
+  background: var(--acct-amber-bg);
+}
+.acct-verify > .fa-icon {
+  width: 24px;
+  height: 24px;
+}
+.acct-verify .acct-row-title {
+  font-size: 14px;
+}
+
+.acct-row {
+  display: flex;
   align-items: center;
   gap: 12px;
 }
-.systemya-account details {
-  margin: 12px 0;
+.acct-badge {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--acct-soft);
 }
-.systemya-account summary {
-  cursor: pointer;
+.acct-badge .fa-icon {
+  width: 20px;
+  height: 20px;
+}
+.acct-badge-lastfm,
+.acct-badge-listenbrainz,
+.acct-badge-discord {
+  color: #fff;
+}
+.acct-badge-lastfm {
+  background: #d51007;
+}
+.acct-badge-listenbrainz {
+  background: #eb743b;
+}
+.acct-badge-discord {
+  background: #5865f2;
+}
+.acct-row-title {
+  font-weight: 600;
+  line-height: 24px;
+}
+.acct-row-title-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.acct-row-detail {
+  overflow-wrap: anywhere;
+  color: var(--acct-text-3);
+  font-size: 14px;
+  line-height: 20px;
+}
+.systemya-account a.acct-row-link {
+  overflow: hidden;
+  color: var(--acct-text-3);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.systemya-account a.acct-row-link:hover {
+  text-decoration: underline;
+}
+.acct-good {
+  color: #22c55e;
+}
+.acct-warn {
+  color: var(--acct-amber);
+}
+.acct-note {
+  flex: none;
+  max-width: 40%;
+  color: var(--acct-text-3);
+  font-size: 12px;
+  line-height: 16px;
+  text-align: right;
+}
+
+.systemya-account .acct-pill {
+  flex: none;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+.systemya-account .acct-pill:disabled {
+  opacity: 0.5;
+}
+.systemya-account .acct-pill-lastfm,
+.systemya-account .acct-pill-listenbrainz,
+.systemya-account .acct-pill-discord {
+  color: #fff;
+}
+.systemya-account .acct-pill-lastfm {
+  background: #d51007;
+}
+.systemya-account .acct-pill-listenbrainz {
+  background: #eb743b;
+}
+.systemya-account .acct-pill-discord {
+  background: #5865f2;
+}
+.systemya-account .acct-pill-lastfm:hover:not(:disabled),
+.systemya-account .acct-pill-listenbrainz:hover:not(:disabled),
+.systemya-account .acct-pill-discord:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.systemya-account .acct-pill-lastfm:hover:not(:disabled) {
+  background: #d51007;
+}
+.systemya-account .acct-pill-listenbrainz:hover:not(:disabled) {
+  background: #eb743b;
+}
+.systemya-account .acct-pill-discord:hover:not(:disabled) {
+  background: #5865f2;
+}
+
+.acct-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--acct-amber-edge);
+  border-radius: 12px;
+  background: var(--acct-amber-bg);
+  font-size: 14px;
+  line-height: 20px;
+}
+.acct-alert > span {
+  flex: 1;
+}
+
+.acct-indent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 52px;
+}
+.acct-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.acct-actions > .acct-text {
+  flex: 1;
+  min-width: 140px;
+}
+.acct-hint {
+  color: var(--acct-text-3);
+  font-size: 12px;
+  line-height: 16px;
+}
+.acct-hint a {
+  text-decoration: underline;
+}
+.acct-hint a:hover {
+  color: var(--acct-text-2);
+}
+
+/* Profile. */
+.acct-labelled {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.acct-caption {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+.systemya-account .acct-text {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--acct-field);
+  color: var(--acct-text);
+  font-size: 14px;
+  line-height: 20px;
+  outline: none;
+  transition: background-color 150ms;
+}
+.systemya-account .acct-text:focus,
+.systemya-account .acct-text:focus-within {
+  background: var(--acct-field-focus);
+}
+.acct-text::placeholder,
+.acct-at input::placeholder {
+  color: var(--acct-text-3);
+  opacity: 1;
+}
+.systemya-account .acct-at {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.acct-at > span {
+  color: var(--acct-text-3);
+  font-size: 14px;
+}
+.systemya-account .acct-at input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  font-size: 14px;
+  line-height: 20px;
+  outline: none;
+}
+.systemya-account .acct-save {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background: var(--acct-solid);
+  color: var(--acct-solid-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+.systemya-account .acct-save:hover:not(:disabled) {
+  opacity: 0.9;
+}
+.systemya-account .acct-save:disabled {
+  opacity: 0.5;
+}
+
+/* Fracital's switch. */
+.systemya-account .acct-switch {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 48px;
+  height: 28px;
+  border-radius: 9999px;
+  background: var(--acct-switch-off);
+}
+.systemya-account .acct-switch[aria-checked="false"]:hover:not(:disabled) {
+  background: var(--acct-switch-off-hover);
+}
+.systemya-account .acct-switch[aria-checked="true"] {
+  background: var(--acct-accent);
+}
+.systemya-account .acct-switch:disabled {
+  opacity: 0.5;
+}
+.acct-switch > span {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 1px 3px #0000001a,
+    0 1px 2px #0000001a;
+  transition: transform 200ms;
+}
+.acct-switch[aria-checked="true"] > span {
+  transform: translateX(20px);
+}
+
+.systemya-account .acct-signout {
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--acct-raised);
+  box-shadow: inset 0 0 0 1px var(--acct-raised-edge);
+  color: var(--acct-text-2);
+  font-weight: 600;
+  line-height: 24px;
+}
+.acct-signout .fa-icon {
+  width: 20px;
+  height: 20px;
+}
+.systemya-account .acct-signout:hover:not(:disabled) {
+  color: #d03b3b;
+}
+
+@media (max-width: 520px) {
+  #root[data-page="account"] .systemya-account {
+    margin: 24px 0 40px;
+  }
+  .acct-card,
+  .acct-card[data-state="in"] {
+    padding: 24px 16px;
+  }
+  .acct-indent {
+    padding-left: 0;
+  }
 }
