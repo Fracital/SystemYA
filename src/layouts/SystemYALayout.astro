@@ -3,6 +3,7 @@ import { ClientRouter } from "astro:transitions";
 import "../systemya/stomp.css";
 import "../systemya/account.css";
 import { getSystemYASnapshot, type SystemYAPage } from "../systemya/snapshot";
+import { obfuscationRules } from "../systemya/obfuscate";
 
 interface Props {
   page: SystemYAPage;
@@ -11,6 +12,7 @@ interface Props {
 
 const { page, title = "SystemYA" } = Astro.props;
 const markup = getSystemYASnapshot(page);
+const rules = obfuscationRules();
 ---
 
 <!doctype html>
@@ -21,6 +23,7 @@ const markup = getSystemYASnapshot(page);
     <title>{title}</title>
     <link rel="icon" type="image/png" href="/systemya-2022/favicon.png" />
     <link rel="stylesheet" href="/systemya-2022/main.css" />
+    <noscript><style is:inline set:html={rules.join("")}></style></noscript>
     <script is:inline>
       // A stale tab may request a removed hashed chunk and receive index.html.
       window.addEventListener("vite:preloadError", (event) => {
@@ -50,6 +53,17 @@ const markup = getSystemYASnapshot(page);
       data-fullscreen="0"
       set:html={markup}
     />
+    <script is:inline data-astro-rerun data-rules={JSON.stringify(rules)}>
+      // 2022's style component: insert the obfuscation rules into the app's <style> through CSSOM.
+      {
+        const rules = JSON.parse(document.currentScript.dataset.rules);
+        const root = document.getElementById("root");
+        let style = root && root.querySelector(":scope > style");
+        if (root && !style) root.prepend((style = document.createElement("style")));
+        const sheet = style && style.sheet;
+        if (sheet && !sheet.cssRules.length) for (const rule of rules) sheet.insertRule(rule, sheet.cssRules.length);
+      }
+    </script>
     <section id="systemya-service" hidden aria-label="SystemYA STomp proxy">
       <div class="service-toolbar">
         <button type="button" id="systemya-close-service" aria-label="Close proxy">Back</button>

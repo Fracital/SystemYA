@@ -2,7 +2,13 @@
 // (archive/webcrack/bundles/372.b61d9907.chunk.js-10ed619bddc4). The original download loaded
 // cdn.jsdelivr.net/gh/sysce/query/dist/query.js, which no longer exists; the file now opens
 // SystemYA itself, full window, from the downloaded copy.
-export const BOOKMARK_MAIN = `<main><h1>Insta-Proxy</h1><hr><h2>What is Insta-Proxy?</h2><p>Insta-Proxy is a new script that allows you to open an unblocked proxy when needed.</p><h2>How to install Insta-Proxy:</h2><p>To install Insta-Proxy Addon, simply download the file below: <br><span id="systemya-bookmark-download"></span></p><h2>How to use Insta-Proxy:</h2><ol><li>Open your Files app</li><li>Find your Downloads folder</li><li>Look for Insta-Proxy.html (If you can't find Insta-Proxy.html, download it from above)</li><li>Open Insta-Proxy.html in your web browser.</li></ol><p>Once you have completed all the steps, you will be on Insta-Proxy.</p></main>`;
+import { obfuscateText } from "./obfuscate";
+
+// Chunk 372 wrapped these names in module 337's obfuscation; obfuscate.ts renders them the same way.
+const o = obfuscateText;
+const name = o("Insta-Proxy");
+const fileName = o("Insta-Proxy.html");
+export const BOOKMARK_MAIN = `<main><h1>${name}</h1><hr><h2>What is ${name}?</h2><p>${name} is a new script that allows you to open an ${o("unblocked proxy")} when needed.</p><h2>How to install ${name}:</h2><p>To install ${o("Insta-Proxy Addon")}, simply download the file below: <br><span id="systemya-bookmark-download"></span></p><h2>How to use ${name}:</h2><ol><li>Open your Files app</li><li>Find your Downloads folder</li><li>Look for ${fileName} (If you can't find ${fileName}, download it from above)</li><li>Open ${fileName} in your web browser.</li></ol><p>Once you have completed all the steps, you will be on ${name}.</p></main>`;
 
 export function mountBookmark(root: HTMLElement): void {
   const slot = root.querySelector<HTMLElement>("#systemya-bookmark-download");
@@ -14,7 +20,7 @@ export function mountBookmark(root: HTMLElement): void {
   link.style.color = "red";
   link.href = file;
   link.download = "Insta-Proxy.html";
-  link.textContent = "Download Insta-Proxy";
+  link.innerHTML = o("Download Insta-Proxy");
   slot.append(link);
   document.addEventListener(
     "astro:before-swap",
