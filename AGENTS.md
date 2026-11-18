@@ -27,7 +27,9 @@ May 2022 interface and builds to a static Astro SPA at `systemya.fracit.al`.
 - The game catalog uses the `/cdn/index.js` SDK served by the edge.
 - `run-server.js`, `runtime.js`, the website2 SDK suite and the legacy Astro
   routes are reference and tooling only. No Node middleware runs in production.
-- The edge has no `/wisp/` route. Do not claim STomp works on the deployed site.
+- The edge has no `/wisp/` route. STomp uses Fracital's public relay,
+  `wss://holywisp.fracit.al/`. OAuth and Last.fm sign-in run through STomp
+  (`src/fracital/stomp-oauth.ts`); see `docs/DEPLOYMENT.md`.
 
 ## CI and deployment
 

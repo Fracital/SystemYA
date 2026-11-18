@@ -24,13 +24,11 @@ let booting: Promise<StompController> | undefined;
 let currentFrame: Frame | undefined;
 let embeddedFrame: HTMLIFrameElement | undefined;
 
-function wispURL(): string {
-  // The static edge currently has no /wisp/ proxy. This transport URL is a
-  // placeholder until infrastructure provisions a compatible endpoint.
-  const url = new URL("/wisp/", location.href);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  return url.href;
-}
+// The edge has no Wisp relay for systemya.fracit.al; Fracital's public relay carries STomp.
+const WISP_URL = "wss://holywisp.fracit.al/";
+
+/** Fired on window when the proxy view closes (its Back button, or closeService()). */
+export const SERVICE_CLOSED = "systemya:service-closed";
 
 export function bootStomp(): Promise<StompController> {
   if (!booting) {
@@ -50,12 +48,15 @@ export function bootStomp(): Promise<StompController> {
         serviceworker: registration,
         transport: {
           module: `${DIRECTORY}link.mjs`,
-          options: [{ wisp: wispURL() }],
+          options: [{ wisp: WISP_URL }],
         },
         directory: DIRECTORY,
         assets: ASSETS,
         codec: "xor",
         cache: true,
+        // Turns on the worker's request log, so `request` events reach the controller
+        // (stomp-oauth.ts catches the OAuth callback with them).
+        onRequest: () => {},
         onOpen: (url: string) => {
           // A link asking for another tab opens within the current SystemYA proxy view.
           void openStomp(url);
@@ -140,6 +141,7 @@ export function closeService(): void {
   if (frame) frame.src = "about:blank";
   currentFrame = undefined;
   embeddedFrame = undefined;
+  window.dispatchEvent(new Event(SERVICE_CLOSED));
 }
 
 export async function reloadService(): Promise<void> {

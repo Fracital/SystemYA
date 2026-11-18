@@ -32,20 +32,34 @@ renders its own not-found message.
 SystemYA has no backend of its own. Visitors sign in with Fracital Accounts
 through the `/api/` proxy: email and password, Discord, Google, GitHub,
 Last.fm, Terbium Accounts and passkeys, plus password reset and email
-verification. OAuth runs in a popup on Fracital's auth host `fracit.al` and
-hands the session back to the page. The client is `src/fracital/`, ported from
-Fracital's `src/libs` with the crypto codecs unchanged.
+verification. The client is `src/fracital/`, ported from Fracital's
+`src/libs` with the crypto codecs unchanged.
 
-Fracital has to list `https://systemya.fracit.al` in `BETTER_AUTH_TRUSTED_ORIGINS`.
-Without it, email and password still work, but the OAuth popups, Last.fm and the
-cross-site sign-in can't return a session to this host.
+Providers only call back to Fracital's auth host (`https://fracit.al`), so
+OAuth and Last.fm run through STomp (`src/fracital/stomp-oauth.ts`):
+
+1. The sign-in starts on this host (`/api/auth/sign-in/social` with
+   `disableRedirect`, `/api/auth/link-social`, or `/api/auth/lastfm/url`).
+   Fracital sets its state cookie here and returns the provider's URL.
+2. The provider's pages run in the STomp view.
+3. A STomp request rule answers `https://fracit.al/api/auth/callback/<provider>`
+   (and `/api/auth/lastfm/callback`) with a 204, and the request event hands
+   over the code and state.
+4. The same callback is replayed on this host. Fracital checks the state
+   cookie, exchanges the code and sets the session here.
+
+Browsers without service workers fall back to a popup on `fracit.al`, which
+only works once Fracital lists `https://systemya.fracit.al` in
+`BETTER_AUTH_TRUSTED_ORIGINS`. The cross-site sign-in hub needs that entry too.
 
 Holt reads the visitor's identity from `/api/me/chat` on the same proxy. A
 signed-in visitor posts in `/chat` under their Fracital username. Guests can
-read public channels but cannot post.
+read public channels but cannot post. Holt links to the platform's views by
+setting the parent page's hash (`#/account`); `src/systemya/chat-links.ts`
+turns those into page loads (`/account/`, `/theatre.html` and so on).
 
-The edge has no `/wisp/` route, so STomp proxy browsing does not work on the
-deployed site.
+The edge has no `/wisp/` route. STomp uses Fracital's public relay,
+`wss://holywisp.fracit.al/` (`src/systemya/stomp.ts`).
 
 ## GitHub workflows
 

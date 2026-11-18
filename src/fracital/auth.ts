@@ -2,8 +2,10 @@
  * Fracital Accounts on SystemYA. SystemYA has no backend of its own: the edge proxies /api/ on
  * systemya.fracit.al to the Fracital server, which answers for this host like any of its own
  * (better-auth under /api/auth, the account under /api/me). Sessions are this host's cookies.
- * OAuth providers only call back to Fracital's auth host, so OAuth runs there in a popup and hands
- * the session back (cross-site.ts). Ported from Fracital src/libs/auth.ts.
+ * OAuth providers only call back to Fracital's auth host, so their pages run in SystemYA's STomp
+ * view and the callback is caught there and replayed on this host (stomp-oauth.ts). Without
+ * service workers it falls back to a popup on the auth host (cross-site.ts), which needs SystemYA
+ * in Fracital's trusted origins. Ported from Fracital src/libs/auth.ts.
  */
 import { passkeyClient } from "@better-auth/passkey/client";
 import { createAuthClient } from "better-auth/client";
@@ -134,8 +136,14 @@ export function getAuthOptions(): Promise<AuthOptions> {
   return optionsCache;
 }
 
+/** STomp runs the provider's pages, so OAuth needs no trust from the auth host. */
+const stompUsable = () =>
+  typeof navigator !== "undefined" &&
+  "serviceWorker" in navigator &&
+  window.isSecureContext;
+
 export const oauthUsable = (options: AuthOptions) =>
-  options.redirectOk || !!options.authHost;
+  stompUsable() || options.redirectOk || !!options.authHost;
 export const passkeysUsable = (options: AuthOptions) =>
   options.passkeys && typeof window.PublicKeyCredential !== "undefined";
 
@@ -180,18 +188,30 @@ export async function signUpEmail(
   await afterSignIn();
 }
 
+// Load a chunk first, then call it. Vite folds `import(x).then(fn)` into its preload wrapper, so a
+// failure inside fn would look like a missing chunk and the layout's stale-chunk handler would
+// reload the page, losing the error.
+const crossSite = () => import("./cross-site");
+const stompOAuth = () => import("./stomp-oauth");
+
 /** A new session here: remember it at the hub so Fracital's other sites sign in too. */
 async function afterSignIn(): Promise<void> {
   const me = await refreshMe();
   if (me)
-    void import("./cross-site")
-      .then((m) => m.linkCrossSite("signin"))
+    void crossSite()
+      .then(async (m) => {
+        await m.linkCrossSite("signin");
+      })
       .catch(() => {});
 }
 
 export async function signOut(): Promise<void> {
   // Unlink from the hub first, or the next page load would sign this browser back in.
-  await import("./cross-site").then((m) => m.unlinkCrossSite()).catch(() => {});
+  try {
+    await (await crossSite()).unlinkCrossSite();
+  } catch {
+    // Signing out here still works; the hub keeps the link until it expires.
+  }
   await authClient.signOut().catch(() => {});
   await refreshMe();
 }
@@ -230,33 +250,43 @@ function waitForPopup(popup: Window, type: string): Promise<void> {
   });
 }
 
-/** Last.fm web auth in a popup. It calls back to this host, so the session lands here. */
+/** Last.fm web auth, through STomp (or a popup when there are no service workers). */
 export async function connectLastfm(mode: "signin" | "link"): Promise<void> {
-  const popup = openPopup(`/api/auth/lastfm/start?mode=${mode}`);
-  await waitForPopup(popup, "fracital:lastfm");
+  if (stompUsable()) {
+    await (await stompOAuth()).lastfmThroughStomp(mode);
+  } else {
+    const popup = openPopup(`/api/auth/lastfm/start?mode=${mode}`);
+    await waitForPopup(popup, "fracital:lastfm");
+  }
   if (mode === "signin") await afterSignIn();
   else await refreshMe();
 }
 
-/** Signs in with, or connects, an OAuth provider through Fracital's auth host. */
+/** Signs in with, or connects, an OAuth provider: through STomp, else a popup on the auth host. */
 export async function connectSocial(
   provider: SocialProvider,
   mode: "signin" | "link",
   scopes?: string[],
 ): Promise<void> {
+  if (stompUsable()) {
+    await (await stompOAuth()).oauthThroughStomp(provider, mode, scopes);
+    if (mode === "signin") await afterSignIn();
+    else await refreshMe();
+    return;
+  }
   const popup = openPopup();
   try {
     const options = await getAuthOptions();
     if (!options.authHost)
       throw new Error("Sign-in with this provider isn't available right now");
-    await import("./cross-site").then((m) =>
-      m.oauthThroughAuthHost(
-        popup,
-        options.authHost as string,
-        provider,
-        mode,
-        scopes,
-      ),
+    await (
+      await crossSite()
+    ).oauthThroughAuthHost(
+      popup,
+      options.authHost as string,
+      provider,
+      mode,
+      scopes,
     );
   } finally {
     if (!popup.closed) popup.close();

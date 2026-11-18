@@ -16,8 +16,8 @@ launch. Thumbnails use the SDK's opaque same-origin image paths.
 
 Launches open in SystemYA's in-page frame:
 
-- `proxy` games open their source URL in STomp, which needs `/wisp/` and so
-  does not work on the deployed site.
+- `proxy` games open their source URL in STomp, over Fracital's public relay
+  `wss://holywisp.fracit.al/`.
 - `flash` games open `/flash#<encrypted URL>`, website2's Ruffle page. That
   page is in `legacy/website2/pages/` and is not part of the static build.
 - Other games open the SDK's local `launchPath`.

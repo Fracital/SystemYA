@@ -31,9 +31,23 @@ test("STomp version and Fracital runtime names remain aligned", async () => {
   );
   const engine = await source("src/systemya/stomp.ts");
   assert.match(engine, /StompController|Controller.register/);
-  assert.match(engine, /\/wisp\//);
+  assert.match(engine, /wss:\/\/holywisp\.fracit\.al\//);
   assert.match(engine, /controller.createFrame\(frame\)/);
   assert.match(engine, /currentFrame.go\(url.href\)/);
+  // The request log must be on, or the OAuth callback is never reported.
+  assert.match(engine, /onRequest:/);
+});
+
+test("OAuth and Last.fm run through STomp and replay fracit.al's callback here", async () => {
+  const oauth = await source("src/fracital/stomp-oauth.ts");
+  assert.match(oauth, /AUTH_HOST = "https:\/\/fracit\.al"/);
+  assert.match(oauth, /\/api\/auth\/callback\//);
+  assert.match(oauth, /disableRedirect: true/);
+  assert.match(oauth, /\/api\/auth\/lastfm\/url\?mode=/);
+  assert.match(oauth, /action: \{ status: 204 \}/);
+  const auth = await source("src/fracital/auth.ts");
+  assert.match(auth, /oauthThroughStomp\(provider, mode, scopes\)/);
+  assert.match(auth, /lastfmThroughStomp\(mode\)/);
 });
 
 test("STomp build tool copies upstream assets and keeps their hashes", async () => {

@@ -3,6 +3,7 @@ import { openStomp, openEmbed, closeService, reloadService } from "./stomp";
 import { mountGamesSDK } from "./games-sdk";
 import { mountAccount, startAccountSession } from "./account";
 import { mountBookmark } from "./bookmark";
+import { mountChatLinks } from "./chat-links";
 // Astro ClientRouter preserves same-document navigation between the recovered pages.
 // Each page-load rebinds the captured 2022 markup without injecting a new interface.
 
@@ -58,6 +59,7 @@ function initSystemYA(): void {
   mountGamesSDK(root);
   mountAccount(root);
   mountBookmark(root);
+  mountChatLinks(root);
   startAccountSession();
   nav.dataset.expanded = "0";
   nav.dataset.search = "0";
