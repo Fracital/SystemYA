@@ -37,7 +37,7 @@ export function bootStomp(): Promise<StompController> {
         throw new Error("This browser does not support service workers.");
       if (!window.isSecureContext)
         throw new Error("STomp requires HTTPS or localhost.");
-      const file = `${DIRECTORY}api.mjs`;
+      const file = `${DIRECTORY}api.js`;
       const { default: Controller } = (await import(
         /* @vite-ignore */ file
       )) as Module;
@@ -47,7 +47,7 @@ export function bootStomp(): Promise<StompController> {
       const controller = new Controller({
         serviceworker: registration,
         transport: {
-          module: `${DIRECTORY}link.mjs`,
+          module: `${DIRECTORY}link.js`,
           options: [{ wisp: WISP_URL }],
         },
         directory: DIRECTORY,

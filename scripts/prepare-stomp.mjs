@@ -10,7 +10,9 @@ export const stompFiles = Object.freeze([
   ["injectWorker.js", "wk.js"],
   ["transportWorker.js", "tw.js"],
   ["rewriteWorker.js", "rw.js"],
-  ["controller.mjs", "api.mjs"],
+  // .js, not .mjs: the edge's nginx has no type for .mjs and serves it as
+  // application/octet-stream, which browsers refuse as a module script.
+  ["controller.mjs", "api.js"],
 ]);
 
 export async function prepareStomp({
@@ -34,7 +36,7 @@ export async function prepareStomp({
     from: join(source, from),
     to,
   }));
-  operations.push({ from: epoxy, to: "link.mjs" });
+  operations.push({ from: epoxy, to: "link.js" });
   // Validate every file before mutating the destination, so a partial package install cannot ship a partial runtime.
   const files = await Promise.all(
     operations.map(async ({ from, to }) => {

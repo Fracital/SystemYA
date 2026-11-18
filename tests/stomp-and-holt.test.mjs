@@ -27,7 +27,7 @@ test("STomp version and Fracital runtime names remain aligned", async () => {
   );
   assert.deepEqual(
     stompFiles.map((x) => x[1]),
-    ["sw.js", "doc.js", "wk.js", "tw.js", "rw.js", "api.mjs"],
+    ["sw.js", "doc.js", "wk.js", "tw.js", "rw.js", "api.js"],
   );
   const engine = await source("src/systemya/stomp.ts");
   assert.match(engine, /StompController|Controller.register/);
@@ -69,7 +69,7 @@ test("STomp build tool copies upstream assets and keeps their hashes", async () 
       destination: dest,
     });
     assert.equal(manifest.files.length, 7);
-    const api = await readFile(join(dest, "api.mjs"), "utf8");
+    const api = await readFile(join(dest, "api.js"), "utf8");
     assert.match(api, /controller/);
     assert.equal(
       JSON.parse(await readFile(join(dest, "manifest.json"))).files.length,
