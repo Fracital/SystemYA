@@ -209,8 +209,9 @@ passed. `stomp-update.yml` moves SystemYA to each new nightly by itself:
   `repository_dispatch` of type `stomp-nightly` with the version it published
   in `client_payload.version`, so the update starts within minutes of the
   publish. The schedule runs every hour at :41 as the fallback for a lost
-  dispatch, and until powerMouse's `nightly.yml` sends one. "Run workflow" tries now, optionally with a specific `version`
-  and with `dry_run`, which runs every check and pushes nothing.
+  dispatch, and until powerMouse's `nightly.yml` sends one. "Run workflow"
+  tries now, optionally with a specific `version` and with `dry_run`, which
+  runs every check (on the pin itself when it is current) and pushes nothing.
 - The probe job reads the pin on `main` and npm, and stops in seconds when
   both are current. A dispatched version can take minutes to reach the
   registry, so the probe waits for it, up to 20 minutes. The package only

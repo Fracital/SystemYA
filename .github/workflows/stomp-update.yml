@@ -36,7 +36,7 @@ on:
         required: false
         default: ""
       dry_run:
-        description: "Only test: run every check, push nothing, open no issue"
+        description: "Only test: run every check (on the pin when it is current), push nothing, open no issue"
         type: boolean
         required: false
         default: false
@@ -195,6 +195,12 @@ jobs:
 
           issue=$(gh issue list --state open --author app/github-actions --json number,title,updatedAt \
             --jq 'map(select(.title == env.ISSUE_TITLE))[0] // empty')
+          if [[ $package == false && $move_sub == false && $dry_run == true ]]; then
+            # a dry run of the pin itself: the whole check, nothing bumped
+            echo "::notice::$PACKAGE_NAME $current and $SUBMODULE ${pinned:-(none)} are current; dry run of the pin"
+            echo update=true >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [[ $package == false && $move_sub == false ]]; then
             echo "::notice::$PACKAGE_NAME $current and $SUBMODULE ${pinned:-(none)} are current"
             echo update=false >>"$GITHUB_OUTPUT"
@@ -295,6 +301,7 @@ jobs:
           done
 
       - uses: actions/upload-artifact@v4
+        if: needs.probe.outputs.dry_run != 'true'
         with:
           name: stomp-bump
           path: ${{ runner.temp }}/bump/
@@ -358,7 +365,7 @@ jobs:
             awk '!/^[ \t]*✔/ && /✖|Error:|^error|::error::|npm error|ERR!|expected .* found it|not served|does not name|changed \(new:|named after it|has the title| says / { print; under = 8; next }
               under > 0 && /^[ \t]/ && !/^[ \t]+at / { print; under--; next }
               { under = 0 }' |
-            awk '!seen[$0]++' | head -n 60 | sed 's/```/` ` `/g' >"$RUNNER_TEMP/error.txt" || true
+            cut -c 1-400 | awk '!seen[$0]++' | head -n 60 | sed 's/```/` ` `/g' >"$RUNNER_TEMP/error.txt" || true
           {
             echo "error<<STOMP_UPDATE_EOF"
             cat "$RUNNER_TEMP/error.txt"
