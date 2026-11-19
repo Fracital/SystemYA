@@ -196,6 +196,8 @@ export async function preparePowerMouse({
           proxyOrigin: "",
           wisp: config.wisp,
           http3: true,
+          // pm/main.js passes this to epoxy's descriptor as `webTransport`
+          webTransport: config.webTransport,
           echDns: "https://cloudflare-dns.com/dns-query",
           shieldsDefaults: true,
         },

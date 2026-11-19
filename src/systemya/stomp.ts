@@ -12,6 +12,9 @@ import { openProxy } from "./proxy";
 const DIRECTORY = build.directory;
 // The edge has no Wisp relay for systemya.fracit.al; Fracital's public relay carries STomp.
 const WISP_URL = config.wisp;
+// Wisp over the relay's WebTransport session (found by /webtransport.json on the relay's
+// origin), its WebSocket when UDP or the session is not there.
+const WEB_TRANSPORT = config.webTransport;
 const ASSETS = build.assets;
 
 type Module = typeof import("@sysce/stomp");
@@ -40,6 +43,7 @@ export function bootStomp(): Promise<StompController> {
           module: `${DIRECTORY}${build.transport.epoxy}`,
           options: [{ wisp: WISP_URL }],
           http3: { module: `${DIRECTORY}${build.transport.h3}` },
+          webTransport: WEB_TRANSPORT,
         },
         directory: DIRECTORY,
         assets: ASSETS,

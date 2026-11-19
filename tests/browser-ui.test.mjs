@@ -224,6 +224,10 @@ test(
       const frame = await readFile(join(out, `sy.${runtime.stamp}.js`), "utf8");
       assert.ok(frame.includes(runtime.assets.serviceWorker));
       assert.ok(frame.includes(names.access));
+      // Wisp over the relay's WebTransport session first, its WebSocket as the fallback
+      assert.match(frame, /webTransport:(?:!0|true)[,}]/);
+      assert.match(js, /webTransport:[A-Z_]+/);
+      assert.match(js, /CFG\.webTransport/);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -367,6 +371,12 @@ test("CI checks out the submodule, pinned shallow", async () => {
   assert.equal(config.directory, "/vendor/rt/");
   assert.equal(config.ui, "/ui/");
   assert.equal(config.wisp, "wss://holywisp.fracit.al/");
+  // the session is found by the relay's /webtransport.json, the WebSocket kept as the fallback
+  assert.equal(config.webTransport, true);
+  assert.match(
+    await source("src/systemya/stomp.ts"),
+    /const WEB_TRANSPORT = config\.webTransport;[\s\S]*webTransport: WEB_TRANSPORT,/,
+  );
 });
 
 test("the neutral-name check catches package names, /proxy/ and plain words", async () => {
