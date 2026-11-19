@@ -25,7 +25,11 @@ export function patches({ directory, ui, files, runtime, names }) {
     "pm/main.js": [
       ["const DIRECTORY = '/stomp/';", `const DIRECTORY = '${directory}';`],
       [
-        `\`${base}/epoxy/index.mjs\``,
+        // the transport's directory became CFG.transports' (transportPath) in e5f74c5
+        [
+          `\`${base}/epoxy/index.mjs\``,
+          `\`${base}\${transportPath('epoxy')}index.mjs\``,
+        ],
         `\`${base}${directory}${runtime.transport.epoxy}\``,
       ],
       [
@@ -33,7 +37,10 @@ export function patches({ directory, ui, files, runtime, names }) {
         `\t\t\thttp3: { module: \`${base}${directory}${runtime.transport.h3}\` },`,
       ],
       [
-        `\`${base}/libcurl/index.mjs\``,
+        [
+          `\`${base}/libcurl/index.mjs\``,
+          `\`${base}\${transportPath('libcurl')}index.mjs\``,
+        ],
         `\`${base}${directory}${runtime.transport.libcurl}\``,
       ],
       ["errorPage: '/error.html',", `errorPage: '${at("error.html")}',`],
@@ -107,10 +114,14 @@ export function patches({ directory, ui, files, runtime, names }) {
 /**
  * Apply `list` to `text`. A count of "all" means at least once; a number, exactly that many;
  * "any" also allows none, for the folder rewrites ('/pm/ and the like), whose leftovers
- * missingReferences() reports.
+ * missingReferences() reports. `from` may be a list of spellings (an upstream that moved
+ * between them): the first one the text has is the one counted.
  */
 export function applyPatches(name, text, list) {
-  for (const [index, [from, to, times = 1]] of list.entries()) {
+  for (const [index, [spellings, to, times = 1]] of list.entries()) {
+    const from = Array.isArray(spellings)
+      ? (spellings.find((spelling) => text.includes(spelling)) ?? spellings[0])
+      : spellings;
     const count = text.split(from).length - 1;
     if (times === "any") {
       text = text.split(from).join(to);
