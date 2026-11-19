@@ -20,6 +20,11 @@ function targetUrl(value: string): string {
 
 function initSystemYA(): void {
   const root = document.querySelector<HTMLElement>("#root");
+  // The footer's year is the visitor's current one, whenever the page was built (snapshot.ts).
+  const year = String(new Date().getUTCFullYear());
+  root?.querySelectorAll(".systemya-year").forEach((el) => {
+    el.textContent = year;
+  });
   // The player page has no navbar: it runs in the browser page's frame (player.ts).
   if (root?.dataset.page === "player") return mountPlayer(root);
   const nav = root?.querySelector<HTMLElement>("nav");

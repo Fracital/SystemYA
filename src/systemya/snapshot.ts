@@ -39,8 +39,20 @@ const wrapBanner = (markup: string): string =>
     banner.split(BANNER_NAME).join(obfuscateText(BANNER_NAME)),
   );
 
+// The 2022 footer reads "SystemYA 2022". It shows the current year instead, as website2's footer
+// does: the build's year in the page, and the visitor's (UTC) on every page load
+// (interactions.ts), so a page built last December still says this year.
+const FOOTER_YEAR =
+  /(<footer\b[^>]*>[\s\S]*?<span class="brand-text">SystemYA<\/span> )2022(<\/span><\/footer>)/g;
+const YEAR_CLASS = "systemya-year";
+const currentYear = (markup: string): string =>
+  markup.replace(
+    FOOTER_YEAR,
+    `$1<span class="${YEAR_CLASS}">${new Date().getUTCFullYear()}</span>$2`,
+  );
+
 export function getSystemYASnapshot(page: SystemYAPage): string {
-  return wrapBanner(renderSnapshot(page));
+  return currentYear(wrapBanner(renderSnapshot(page)));
 }
 
 function renderSnapshot(page: SystemYAPage): string {
