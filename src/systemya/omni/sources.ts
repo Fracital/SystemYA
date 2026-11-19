@@ -43,16 +43,6 @@ export function engineFor(template: string): Engine {
 export const searchUrl = (engine: Engine, text: string): string =>
   engine.url + encodeURIComponent(text);
 
-/**
- * Whose completions an engine shows. Fracital's /api/complete answers an empty list for Brave and
- * Bing from its server (checked 2026-11-19), so those ask Google's; a pick still searches with the
- * box's own engine.
- */
-const COMPLETES_WITH: Partial<Record<EngineId, EngineId>> = {
-  brave: "google",
-  bing: "google",
-};
-
 // --- The search engine's completions ---
 
 export async function completionsSource(
@@ -60,10 +50,13 @@ export async function completionsSource(
   q: string,
   signal: AbortSignal,
 ): Promise<Suggestion[]> {
-  const id = COMPLETES_WITH[engine.id] ?? engine.id;
-  const res = await fetch(`/api/complete?q=${encodeURIComponent(q)}&e=${id}`, {
-    signal,
-  });
+  // Fracital's /api/complete answers for every engine (Brave with Google's completions)
+  const res = await fetch(
+    `/api/complete?q=${encodeURIComponent(q)}&e=${engine.id}`,
+    {
+      signal,
+    },
+  );
   if (!res.ok) return [];
   const { s } = (await res.json()) as { s?: unknown };
   return (Array.isArray(s) ? s : [])
