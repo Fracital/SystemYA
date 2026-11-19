@@ -173,16 +173,26 @@ export async function prepareStomp({
     page[key] = name(to);
     operations.push({ from: join(source, from), to: name(to) });
   }
-  // The transports, imported by the transport worker: epoxy (with stomp-h3, which names its
-  // wasm, so that name is rewritten to match) and libcurl.
+  // The transports, imported by the transport worker: epoxy and stomp-h3 (each loads its wasm
+  // by name next to itself, so that name is rewritten to match) and libcurl.
   const transport = {
     epoxy: name("ln.js"),
     h3: name("q3.js"),
     libcurl: name("cu.js"),
   };
+  const epoxyWasm = name("ln.wasm");
   const h3wasm = name("q3.wasm");
   operations.push(
-    { from: join(epoxy, "index.mjs"), to: transport.epoxy },
+    {
+      from: join(epoxy, "index.mjs"),
+      to: transport.epoxy,
+      transform: (text) => {
+        if (!text.includes('"epoxy.wasm"'))
+          throw new Error("epoxy-transport no longer names epoxy.wasm");
+        return text.split('"epoxy.wasm"').join(JSON.stringify(epoxyWasm));
+      },
+    },
+    { from: join(epoxy, "epoxy.wasm"), to: epoxyWasm },
     {
       from: join(epoxy, "h3/stomp_h3.js"),
       to: transport.h3,

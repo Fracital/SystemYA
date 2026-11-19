@@ -62,7 +62,11 @@ async function fixture(dir) {
     );
   await writeFile(join(dist, "codec.wasm"), "unused ".repeat(10));
   await writeFile(join(dist, "Controller.js.map"), "{}".repeat(30));
-  await writeFile(join(epoxy, "index.mjs"), "// epoxy ".repeat(10));
+  await writeFile(
+    join(epoxy, "index.mjs"),
+    `// epoxy loads new URL("epoxy.wasm", import.meta.url) `.repeat(2),
+  );
+  await writeFile(join(epoxy, "epoxy.wasm"), "wasm ".repeat(20));
   await writeFile(
     join(epoxy, "h3/stomp_h3.js"),
     `// h3 loads new URL("stomp_h3_bg.wasm", import.meta.url) `.repeat(2),
@@ -101,7 +105,13 @@ test("the runtime ships under short stamped names that change every build", asyn
     );
     assert.equal(second.assets.serviceWorker, `sw.${second.stamp}.js`);
     assert.equal(second.page.module, `ap.${second.stamp}.js`);
-    // stomp-h3 is told its wasm's new name, and no file names its source map
+    // epoxy and stomp-h3 are told their wasm's new names, and no file names its source map
+    const ln = await readFile(
+      join(destination, second.transport.epoxy),
+      "utf8",
+    );
+    assert.match(ln, new RegExp(`"ln\\.${second.stamp}\\.wasm"`));
+    assert.doesNotMatch(ln, /epoxy\.wasm/);
     const h3 = await readFile(join(destination, second.transport.h3), "utf8");
     assert.match(h3, new RegExp(`q3\\.${second.stamp}\\.wasm`));
     assert.doesNotMatch(h3, /stomp_h3_bg/);

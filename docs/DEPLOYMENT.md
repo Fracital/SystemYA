@@ -155,6 +155,20 @@ files and STomp's page globals. The names are written to
 UI and passes those names to STomp. `prepare:stomp` updates the folders in
 place, so a running `npm run dev` picks up the new files.
 
+The epoxy transport is `@mercuryworkshop/epoxy-transport`, installed from a
+commit on the `dist` branch of `Fracital/EpoxyTransport` (powerMouse builds
+it, see its `deploy/epoxy/`). `package.json` pins the full commit by
+`git+https://` URL, the same build STomp pins in powerMouse's
+`devDependencies`. Keep the two equal: STomp is tested only with its own pin,
+and an older epoxy can break it (nightly 202611190550 hung every page with
+`webTransport` on next to the 2026-11-10 build, which lacks epoxy-tls fix
+0075). `prepare:stomp` serves `dist/index.mjs` as `ln.<stamp>.js` and the
+wasm it loads by name, `dist/epoxy.wasm`, as `ln.<stamp>.wasm`, with the name
+in the script rewritten to match; stomp-h3 (`dist/h3/`) goes the same way as
+`q3.<stamp>.js` and `q3.<stamp>.wasm`. A build that no longer names its wasm
+stops `prepare:stomp`. To move it by hand, set the full commit in
+`package.json`, run `npm install`, then `npm test` and `npm run build`.
+
 The fragment never holds a readable address. A visit starts as
 `/?2#<base64url of the XOR-encoded URL>`. Once the UI loads, the fragment
 becomes the UI's sealed route (`#html/...`) and follows browsing with
@@ -220,6 +234,12 @@ passed. `stomp-update.yml` moves SystemYA to each new nightly by itself:
   from (its `gitHead`), only forward along `master`, so the UI and the runtime
   always come from the same tested commit. A manual run with a `version` may
   go back.
+- The epoxy transport moves with STomp: the bump reads the
+  `@mercuryworkshop/epoxy-transport` pin the published package names (its
+  `devDependencies`, from powerMouse's `package.json`) and sets SystemYA's to
+  the same commit when it differs. The commit message names that move. The
+  probe looks only at STomp and the submodule, so an epoxy pin that drifts
+  while both are current waits for the next nightly or a bump by hand.
 - The check job holds no write token. It bumps `package.json` and
   `package-lock.json` and the submodule, then runs the same checks as CI and
   the deploy: `npm ci`, `npm run verify`, `npm run build` (which runs
