@@ -208,8 +208,8 @@ passed. `stomp-update.yml` moves SystemYA to each new nightly by itself:
 - Triggers. powerMouse's nightly workflow sends this repository a
   `repository_dispatch` of type `stomp-nightly` with the version it published
   in `client_payload.version`, so the update starts within minutes of the
-  publish. The schedule runs every hour at :41 as the fallback for a lost
-  dispatch, and until powerMouse's `nightly.yml` sends one. "Run workflow"
+  publish. The schedule checks every 5 minutes (GitHub's shortest), the fallback
+  for a lost dispatch and while powerMouse has no dispatch token. "Run workflow"
   tries now, optionally with a specific `version` and with `dry_run`, which
   runs every check (on the pin itself when it is current) and pushes nothing.
 - The probe job reads the pin on `main` and npm, and stops in seconds when
@@ -244,15 +244,15 @@ passed. `stomp-update.yml` moves SystemYA to each new nightly by itself:
   issue quotes the error lines (a patch that no longer matches names its file,
   its number in `patches()` and the string; a file the UI names but the build
   does not serve names the upstream file), the failed step and how to
-  reproduce it. If the deploy fails, the issue says so. The hourly schedule
+  reproduce it. If the deploy fails, the issue says so. The schedule
   retests a version that failed every 6 hours; a new nightly, a dispatch or a
   manual run tests at once. The next update that passes closes the issue, as
-  does an hourly probe that finds `main` current and its last deploy passed.
+  does a scheduled probe that finds `main` current and its last deploy passed.
 
 The workflow needs no secrets beyond the `GITHUB_TOKEN` that Actions
 provides. The dispatch is sent from powerMouse with a token of its own (a
 fine-grained token with Contents read and write on this repository); without
-it the hourly schedule still picks up every nightly.
+it the 5-minute schedule still picks up every nightly within minutes.
 
 The `build` script runs `prepare:stomp`, `astro check`, `astro build` and the
 static output check. website2's SDK build (`npm run build:sdk`) is not part of

@@ -3,8 +3,8 @@
 # powerMouse (Fracital/powerMouse) publishes master as @sysce/stomp@nightly at 07:17 UTC, and on a
 # manual run, and only a commit whose CI passed (its nightly.yml). Right after it publishes, its
 # nightly.yml sends this repository a repository_dispatch, type stomp-nightly, with the version in
-# client_payload.version, so the update starts within minutes. Every hour the schedule checks too,
-# for a lost dispatch (and while powerMouse sends none).
+# client_payload.version, so the update starts within minutes. Every 5 minutes the schedule checks
+# too, which is what catches a nightly while powerMouse has no dispatch token (and a lost dispatch).
 # Both move the package to the newest nightly and the submodule to the commit it was built from
 # (the package's gitHead), so the UI and the runtime it drives come from one tested commit. The
 # package only moves to a version published after the pinned one, and the submodule only forward
@@ -20,7 +20,7 @@
 # check, nothing is pushed: the publish job starts this workflow again, which tests the update on
 # top of the new main. When the check or the deploy fails, the report job opens an issue, or
 # comments on the open one, with the error lines; main keeps its pin. A later update that passes,
-# or an hourly probe that finds main current and deployed, closes the issue.
+# or a scheduled probe that finds main current and deployed, closes the issue.
 
 name: STomp update
 
@@ -28,7 +28,8 @@ on:
   repository_dispatch:
     types: [stomp-nightly]
   schedule:
-    - cron: "41 * * * *"
+    # GitHub runs no schedule more often than every 5 minutes; a current pin stops in seconds.
+    - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
       version:
