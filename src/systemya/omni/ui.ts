@@ -5,20 +5,18 @@
  * script (frame.js) and patches pm/main.js to call systemyaSuggest() with what it knows: its tabs,
  * its bookmarks and its search engine.
  *
- * Rows: the other open tabs, the pages the open tabs visited this session (the UI keeps no
- * history beyond its tabs), the bookmarks, SystemYA's pages and the engine's completions. The
- * look is the UI's own `.suggestions` / `.auto-fill` dropdown.
+ * Rows: the other open tabs, the sites visited (history.ts, which this records: the patch calls
+ * systemyaVisit() from pm/main.js's recordUrl, each time a tab reaches a page), the bookmarks,
+ * SystemYA's pages and the engine's completions. The look is the UI's own `.suggestions` /
+ * `.auto-fill` dropdown. The UI's menu gets "Clear history".
  */
 import { routeHref } from "../routes.ts";
 import { attachOmnibox, HEADERS, HINTS } from "./box.ts";
+import { clearHistory, loadVisits, recordVisit } from "./history.ts";
 import {
-  canonicalUrl,
-  frecentSites,
   hostOf,
-  scoreUrl,
   urlMatch,
   type GroupKey,
-  type HistoryEntry,
   type PickParts,
   type Suggestion,
 } from "./rank.ts";
@@ -26,14 +24,15 @@ import {
   bookmarksSource,
   completionsSource,
   engineFor,
+  historyPicks,
+  historySource,
   pagesSource,
-  siteRow,
   type Bookmark,
 } from "./sources.ts";
 
 /** A tab of pm/main.js, as far as the suggestions read it. */
 interface Tab {
-  history?: unknown;
+  icon?: unknown;
 }
 
 /** What pm/main.js hands over (the call its patch adds). */
@@ -50,11 +49,16 @@ interface BrowserUI {
   search: string;
   /** What the box's submit opens for a text (SearchBuilder.query). */
   query(text: string): string;
+  /** pm/main.js's shieldIcon(name): the menu's icons, as markup. */
+  icon(name: string): string;
+  closeMenu(): void;
 }
 
 declare global {
   interface Window {
     systemyaSuggest?: (ui: BrowserUI) => void;
+    /** pm/main.js's recordUrl: `tab` reached `url`. */
+    systemyaVisit?: (tab: Tab, url: string) => void;
   }
 }
 
@@ -87,24 +91,17 @@ window.systemyaSuggest = (ui) => {
   const engine = engineFor(ui.search);
   document.head.append(make("style", undefined, STYLE));
 
-  /** The open tabs' pages, each tab's latest last; the UI keeps them for Back and Forward. */
-  const visits = (): HistoryEntry[] => {
-    const now = Date.now();
-    const out: HistoryEntry[] = [];
-    for (const tab of ui.tabs()) {
-      const list = Array.isArray(tab.history)
-        ? tab.history.filter((u): u is string => typeof u === "string")
-        : [];
-      const shown = ui.url(tab);
-      list.forEach((url, i) =>
-        out.push({
-          url,
-          title: url === shown ? ui.title(tab) : "",
-          at: now - (list.length - i),
-        }),
-      );
-    }
-    return out;
+  window.systemyaVisit = (tab, url) => {
+    const title = ui.title(tab);
+    // tabTitle() falls back to the address, or to "New tab" before there is one
+    recordVisit(tab, {
+      url,
+      title:
+        title === url || title === ui.url(tab) || title === "New tab"
+          ? ""
+          : title,
+      icon: tab.icon,
+    });
   };
 
   const tabRow = (tab: Tab, score: number): Suggestion => {
@@ -175,34 +172,17 @@ window.systemyaSuggest = (ui) => {
         ...otherTabs().map((t) =>
           tabRow(t, urlMatch(q, ui.url(t), ui.title(t)) * 1.05),
         ),
-        ...frecentSites(visits()).map((s) =>
-          siteRow(
-            s.url,
-            s.title,
-            undefined,
-            scoreUrl(urlMatch(q, s.url, s.title), s.frecency),
-          ),
-        ),
+        ...historySource(q, loadVisits()),
         ...bookmarksSource(q, ui.bookmarks()),
         ...pagesSource(q, goPage),
       ],
       remote: (q, signal) => completionsSource(engine, q, signal),
-      picks: (): PickParts => {
-        const others = otherTabs();
-        // Pages open in a tab, the one on show included, are not offered again as sites.
-        const open = new Set(ui.tabs().map((t) => canonicalUrl(ui.url(t))));
-        const all = frecentSites(visits()).filter(
-          (s) => !open.has(s.canonical),
-        );
-        return {
-          recentGames: [],
-          recentSites: [...all]
-            .sort((a, b) => b.lastAt - a.lastAt)
-            .map((s) => siteRow(s.url, s.title, undefined, 1)),
-          topSites: all.map((s) => siteRow(s.url, s.title, undefined, 1)),
-          openTabs: others.map((t) => tabRow(t, 1)),
-        };
-      },
+      picks: (): PickParts => ({
+        recentGames: [],
+        // pages open in a tab, the one on show included, are not offered again as sites
+        ...historyPicks(loadVisits(), ui.tabs().map(ui.url)),
+        openTabs: otherTabs().map((t) => tabRow(t, 1)),
+      }),
       // The form's own submit opens it, as typing it and pressing Enter does.
       navigate: (s) => {
         input.value = s.url as string;
@@ -211,5 +191,23 @@ window.systemyaSuggest = (ui) => {
       row,
       header,
     });
+  });
+  // The menu's "Clear history", after About; the menu's keys find every menuitem. Added once
+  // pm/main.js has run: its icons are declared after the call that starts this.
+  queueMicrotask(() => {
+    const menu = document.getElementById("pmMenu");
+    if (!menu) return;
+    const item = make("button", "pmMenuItem");
+    item.type = "button";
+    item.setAttribute("role", "menuitem");
+    item.tabIndex = -1;
+    item.innerHTML = ui.icon("forget");
+    item.append(make("span", undefined, "Clear history"));
+    item.addEventListener("click", () => {
+      ui.closeMenu();
+      if (confirm("Clear the history of the sites you visited here?"))
+        clearHistory();
+    });
+    menu.append(item);
   });
 };

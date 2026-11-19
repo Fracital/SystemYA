@@ -1,6 +1,7 @@
 /**
  * Suggestions under the 2022 search boxes (the home page's and the navbar's `form.omnibox`):
- * SystemYA's pages, the browser's bookmarks and Google's completions, ranked as Fracital's
+ * the sites visited in the browser page (history.ts), SystemYA's pages, the browser's bookmarks
+ * and Google's completions; the empty box offers the latest and the most visited sites, ranked as Fracital's
  * omnibox ranks them (box.ts). The list hangs under the box in the look of the Theatre's search
  * suggestions, which follow the 2022 omnibox (theatre.css, omni.css). The 2022 boxes search
  * Google, so the completions are Google's.
@@ -8,10 +9,13 @@
 import { navigate } from "astro:transitions/client";
 import { attachOmnibox, HEADERS, HINTS, type Omnibox } from "./box.ts";
 import type { GroupKey, Suggestion } from "./rank.ts";
+import { loadVisits } from "./history.ts";
 import {
   bookmarksSource,
   completionsSource,
   ENGINES,
+  historyPicks,
+  historySource,
   pagesSource,
   readBookmarks,
 } from "./sources.ts";
@@ -110,10 +114,16 @@ export function mountOmnibox(
     toUrl,
     searchPrefix: HOME_ENGINE.url,
     local: (q) => [
+      ...historySource(q, loadVisits()),
       ...bookmarksSource(q, readBookmarks()),
       ...pagesSource(q, (href) => void navigate(href)),
     ],
     remote: (q, signal) => completionsSource(HOME_ENGINE, q, signal),
+    picks: () => ({
+      recentGames: [],
+      ...historyPicks(loadVisits()),
+      openTabs: [],
+    }),
     navigate: (s) => openUrl(s.url as string),
     row,
     header,

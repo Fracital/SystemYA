@@ -8,10 +8,14 @@
 import { PAGES, routeHref, type RoutePage } from "../routes.ts";
 import {
   canonicalUrl,
+  frecentSites,
   hostOf,
   matchScore,
   scoreUrl,
   urlMatch,
+  type FrecentSite,
+  type HistoryEntry,
+  type PickParts,
   type Suggestion,
 } from "./rank.ts";
 
@@ -173,3 +177,41 @@ export const bookmarksSource = (q: string, list: Bookmark[]): Suggestion[] =>
         scoreUrl(urlMatch(q, b.url, b.title), 4.5),
       ),
     );
+
+// --- History (history.ts), by frecency ---
+
+/** History grouped by page; rebuilt only when the history changes. */
+let frecentFor: { visits: unknown; sites: FrecentSite[] } | null = null;
+const frecent = (visits: HistoryEntry[]) => {
+  if (!frecentFor || frecentFor.visits !== visits)
+    frecentFor = { visits, sites: frecentSites(visits) };
+  return frecentFor.sites;
+};
+
+export const historySource = (
+  q: string,
+  visits: HistoryEntry[],
+): Suggestion[] =>
+  frecent(visits).map((s) =>
+    siteRow(
+      s.url,
+      s.title,
+      safeIcon(s.icon),
+      scoreUrl(urlMatch(q, s.url, s.title), s.frecency),
+    ),
+  );
+
+/** The empty box's sites: the latest and the most frecent, leaving out pages open in a tab. */
+export function historyPicks(
+  visits: HistoryEntry[],
+  openUrls: string[] = [],
+): Pick<PickParts, "recentSites" | "topSites"> {
+  const open = new Set(openUrls.map(canonicalUrl));
+  const all = frecent(visits).filter((s) => !open.has(s.canonical));
+  return {
+    recentSites: [...all]
+      .sort((a, b) => b.lastAt - a.lastAt)
+      .map((s) => siteRow(s.url, s.title, safeIcon(s.icon), 1)),
+    topSites: all.map((s) => siteRow(s.url, s.title, safeIcon(s.icon), 1)),
+  };
+}

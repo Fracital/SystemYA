@@ -65,6 +65,11 @@ export function patches({ directory, ui, files, runtime, names }) {
       ],
       // what that call names must still be there, so a rename upstream stops the build
       ...SUGGEST_NAMES.map((name) => [name, name]),
+      // each page a tab reaches goes into the history the suggestions rank (omni/history.ts)
+      [
+        'function recordUrl(tab) {\n\t// the requested URL and the one the frame reports can differ only by\n\t// normalisation ("https://a.com" vs "https://a.com/"); that is not a new entry\n\tconst url = normalizeUrl(tab.frame.url);\n\tif (!url) return;\n',
+        "function recordUrl(tab) {\n\tconst url = normalizeUrl(tab.frame.url);\n\tif (!url) return;\n\twindow.systemyaVisit?.(tab, url);\n",
+      ],
     ],
     "pm/main.css": [
       [
@@ -136,6 +141,8 @@ const SUGGEST_CALL = `try {
 		bookmarks: () => bookmarks,
 		search: SEARCH.template,
 		query: (text) => SEARCH.query(text.trim()),
+		icon: (name) => shieldIcon(name),
+		closeMenu: () => menuPopover.close(),
 	});
 } catch (error) {
 	console.error(error);
@@ -150,6 +157,8 @@ const SUGGEST_NAMES = [
   "function tabTitle(tab) {",
   "const shownUrl = (tab) =>",
   "let bookmarks = loadBookmarks();",
+  "function shieldIcon(name, cls = 'shieldsIcon') {",
+  "const menuPopover = popover(menuPanel, $('menuScrim'));",
 ];
 
 /**
