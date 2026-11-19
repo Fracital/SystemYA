@@ -40,9 +40,9 @@ export function patches({ directory, ui, files, runtime, names }) {
       ["element.title = 'Proxied page';", "element.title = 'Page';"],
       // the Shields panel's notes on how block lists are fetched
       ["through the proxy", "through the relay", 2],
-      ["'/pm/", `'${ui}`, "all"],
+      ["'/pm/", `'${ui}`, "any"],
       // markup in template strings (the About panel's logo)
-      ['"/pm/', `"${ui}`, "all"],
+      ['"/pm/', `"${ui}`, "any"],
       // the bookmark icon check, a regular expression (/^\/pm\/icons\/[\w.-]+$/)
       ["\\/pm\\/", ui.replace(/\//g, "\\/"), 1],
     ],
@@ -51,7 +51,7 @@ export function patches({ directory, ui, files, runtime, names }) {
         "url('/fonts/montserrat/montserrat-latin-400-normal.woff2')",
         `url('${ui}fonts/montserrat-latin-400-normal.woff2')`,
       ],
-      ["url('/pm/", `url('${ui}`, "all"],
+      ["url('/pm/", `url('${ui}`, "any"],
     ],
     "index.html": [
       ["<title>powerMouse</title>", "<title>SystemYA</title>"],
@@ -94,7 +94,7 @@ export function patches({ directory, ui, files, runtime, names }) {
         'Uptime: <span id="uptime">…</span><span id="version"></span>',
         '<span id="uptime" hidden></span>&nbsp;<span id="version"></span>',
       ],
-      ['"/pm/', `"${ui}`, "all"],
+      ['"/pm/', `"${ui}`, "any"],
     ],
     "error.html": [
       ['href="/pm/main.css"', `href="${at("pm/main.css")}"`],
@@ -104,10 +104,18 @@ export function patches({ directory, ui, files, runtime, names }) {
   };
 }
 
-/** Apply `list` to `text`. A count of "all" means at least once; a number, exactly that many. */
+/**
+ * Apply `list` to `text`. A count of "all" means at least once; a number, exactly that many;
+ * "any" also allows none, for the folder rewrites ('/pm/ and the like), whose leftovers
+ * missingReferences() reports.
+ */
 export function applyPatches(name, text, list) {
   for (const [index, [from, to, times = 1]] of list.entries()) {
     const count = text.split(from).length - 1;
+    if (times === "any") {
+      text = text.split(from).join(to);
+      continue;
+    }
     if (times === "all" ? count < 1 : count !== times)
       throw new Error(
         `powerMouse ${name}, patch ${index + 1} of ${list.length}: expected ${JSON.stringify(from)} ${times === "all" ? "at least once" : `${times} time(s)`}, found it ${count} times. Update its entry in patches() in scripts/prepare-powermouse.mjs for the new upstream.`,

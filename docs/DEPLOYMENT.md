@@ -144,8 +144,11 @@ by `dev` and `build`) copies it to `public/ui/` and STomp's runtime to
 
 The copy changes only fixed strings: the runtime's paths, the transports
 (served as `.js`, because the edge serves `.mjs` as a download), the title,
-the branding and the version line. Each replacement must match, so an upstream
-change that moves one stops the build. The UI's scripts and pages get short
+the branding and the version line. Each replacement must match its stated
+count, so an upstream change that moves one stops the build. The rewrites of
+the demo's folder (`'/pm/`, `"/pm/`, `url('/pm/`) may match none, because a
+reference left to that folder, or to a file the build does not serve, stops
+the build anyway. The UI's scripts and pages get short
 names with a stamp minted per build (`ma.<stamp>.js`), as do the runtime's
 files and STomp's page globals. The names are written to
 `src/systemya/stomp-build.json`. `src/systemya/proxy-frame.js` runs inside the
