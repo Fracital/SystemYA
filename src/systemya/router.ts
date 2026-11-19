@@ -56,6 +56,15 @@ function onBeforePreparation(event: Event): void {
     return;
   const at = locate(TABLE, prep.to.pathname, prep.to.search, prep.to.hash);
   if (at.href !== null) prep.to = new URL(at.href, location.origin);
+  // The edge isolates only the browser's page (/?2: COOP same-origin, COEP require-corp), so a
+  // page in it that isolates itself is isolated through STomp, while the other pages keep loading
+  // cross-origin images and frames. A document's headers can't change in place: a move into or
+  // out of the browser is a full load (Astro sets location.href when the navigation is
+  // cancelled). A browser that can't isolate makes every move into it a full load, never a loop.
+  if ((at.page === "app") !== globalThis.crossOriginIsolated) {
+    prep.preventDefault();
+    return;
+  }
   if (hasPages) {
     prep.loader = async () => {
       prep.newDocument = documentFor(at.page);
