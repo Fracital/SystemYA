@@ -1,7 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { transform } from "esbuild";
+import { build, transform } from "esbuild";
 import { obfuscateText, obfuscationRules } from "../src/systemya/obfuscate.ts";
 import { routeHref } from "../src/systemya/routes.ts";
 import { mintStamp, stamped, syncDirectory } from "./prepare-stomp.mjs";
@@ -24,6 +24,11 @@ export function patches({ directory, ui, files, runtime, names }) {
   return {
     "pm/main.js": [
       ["const DIRECTORY = '/stomp/';", `const DIRECTORY = '${directory}';`],
+      // the UI registers the service worker itself (since e5f74c5), by the package's file name
+      [
+        "`${DIRECTORY}serviceWorker.js`",
+        `\`\${DIRECTORY}${runtime.assets.serviceWorker}\``,
+      ],
       [
         // the transport's directory became CFG.transports' (transportPath) in e5f74c5
         [
@@ -52,6 +57,14 @@ export function patches({ directory, ui, files, runtime, names }) {
       ['"/pm/', `"${ui}`, "any"],
       // the bookmark icon check, a regular expression (/^\/pm\/icons\/[\w.-]+$/)
       ["\\/pm\\/", ui.replace(/\//g, "\\/"), 1],
+      // The address bars' suggestions are SystemYA's (src/systemya/omni/ui.ts, bundled into
+      // frame.js): the demo's asked its server's /suggestions, which SystemYA does not have.
+      [
+        "attachSuggestions(mainForm.url);\nattachSuggestions(omni.url);",
+        SUGGEST_CALL,
+      ],
+      // what that call names must still be there, so a rename upstream stops the build
+      ...SUGGEST_NAMES.map((name) => [name, name]),
     ],
     "pm/main.css": [
       [
@@ -110,6 +123,34 @@ export function patches({ directory, ui, files, runtime, names }) {
     ],
   };
 }
+
+/** The call that hands pm/main.js's address bars, tabs and bookmarks to SystemYA's suggestions. */
+const SUGGEST_CALL = `try {
+	window.systemyaSuggest({
+		inputs: [mainForm.url, omni.url],
+		tabs: () => tabs,
+		active: () => activeTab,
+		activate: activateTab,
+		title: tabTitle,
+		url: shownUrl,
+		bookmarks: () => bookmarks,
+		search: SEARCH.template,
+		query: (text) => SEARCH.query(text.trim()),
+	});
+} catch (error) {
+	console.error(error);
+}`;
+const SUGGEST_NAMES = [
+  "const SEARCH = new SearchBuilder(",
+  "const omni = $('omni');",
+  "const mainForm = $('mainForm');",
+  "const tabs = [];",
+  "let activeTab = null;",
+  "function activateTab(tab) {",
+  "function tabTitle(tab) {",
+  "const shownUrl = (tab) =>",
+  "let bookmarks = loadBookmarks();",
+];
 
 /**
  * Apply `list` to `text`. A count of "all" means at least once; a number, exactly that many;
@@ -180,6 +221,7 @@ export async function preparePowerMouse({
     "node_modules/@fontsource/montserrat/files/montserrat-latin-400-normal.woff2",
   ),
   frameScript = resolve("src/systemya/proxy-frame.js"),
+  suggestScript = resolve("src/systemya/omni/ui.ts"),
   destination,
 }) {
   if (!existsSync(join(source, "pm/main.js")))
@@ -221,7 +263,18 @@ export async function preparePowerMouse({
           shieldsDefaults: true,
         },
       }),
-    ),
+    ) +
+      // the address bars' suggestions, which pm/main.js's patched call starts
+      (
+        await build({
+          entryPoints: [suggestScript],
+          bundle: true,
+          write: false,
+          format: "iife",
+          target: "es2022",
+          legalComments: "none",
+        })
+      ).outputFiles[0].text,
   );
   // Comments go: they describe the code with the names the copy leaves out. Identifiers stay,
   // so the scripts' globals (navigate, which frame.js calls) keep their names.
