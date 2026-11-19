@@ -75,7 +75,15 @@ test("CI builds the static artifact without credentials, and deploy queues with 
     deploy,
     /rsync -rlz --chmod=D755,F644 --exclude='\*\.html' dist\/ edge:/,
   );
-  assert.match(deploy, /rsync -rlz --chmod=D755,F644 --delete dist\/ edge:/);
+  assert.match(
+    deploy,
+    /rsync -rlz --chmod=D755,F644 --delete --filter="merge \$RUNNER_TEMP\/keep\.rules" dist\/ edge:/,
+  );
+  // The files of recent deploys are listed before the upload and kept by the deleting pass.
+  const list = deploy.indexOf("rsync -r --list-only edge:");
+  assert.ok(list !== -1);
+  assert.ok(list < deploy.indexOf("--exclude='*.html' dist/ edge:"));
+  assert.match(deploy, /node scripts\/keep-recent\.mjs/);
   assert.match(deploy, /actions\/download-artifact@v4/);
   assert.doesNotMatch(
     deploy,
@@ -125,4 +133,40 @@ test("Stale chunk loader reloads before retaining broken SPA state", () => {
   assert.match(layout, /vite:preloadError/);
   assert.match(layout, /window\.location\.reload/);
   assert.match(read("src/systemya/route-pages.ts"), /Page not found/);
+});
+
+test("A deploy keeps the files of the deploys in the 72 hours before the last one", async () => {
+  const { parseListing, keptPaths, protectRule, KEEP_HOURS } =
+    await import("../scripts/keep-recent.mjs");
+  assert.equal(KEEP_HOURS, 72);
+  const listing = [
+    "drwxr-xr-x          4,096 2026/11/19 21:21:07 .",
+    "drwxr-xr-x          4,096 2026/11/19 21:21:07 ui",
+    "-rw-r--r--         10,929 2026/11/19 21:21:07 ui/ix.0c279b7c.html",
+    "-rw-r--r--         10,931 2026/11/19 08:37:58 ui/ix.c8ab1f25.html",
+    "-rw-r--r--        179,670 2026/11/16 21:21:06 vendor/rt/sw.11111111.js",
+    "-rw-r--r--        179,670 2026/11/16 21:21:08 vendor/rt/sw.22222222.js",
+    "lrwxrwxrwx              9 2026/11/19 21:21:07 link -> index.html",
+    "",
+  ].join("\n");
+  const files = parseListing(listing);
+  assert.deepEqual(
+    files.map((file) => file.path),
+    [
+      "ui/ix.0c279b7c.html",
+      "ui/ix.c8ab1f25.html",
+      "vendor/rt/sw.11111111.js",
+      "vendor/rt/sw.22222222.js",
+    ],
+  );
+  // 72 hours before the newest file (21:21:07): 21:21:06 is out, 21:21:08 is in.
+  assert.deepEqual(keptPaths(files), [
+    "ui/ix.0c279b7c.html",
+    "ui/ix.c8ab1f25.html",
+    "vendor/rt/sw.22222222.js",
+  ]);
+  assert.deepEqual(keptPaths([]), []);
+  assert.equal(protectRule("ui/ix.0c279b7c.html"), "P /ui/ix.0c279b7c.html");
+  assert.equal(protectRule("a/b[1]*.js"), "P /a/b\\[1]\\*.js");
+  assert.equal(protectRule("a\\b.js"), "P /a\\b.js");
 });

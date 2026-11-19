@@ -54,6 +54,13 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: scripts/keep-recent.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
       - uses: actions/download-artifact@v4
         with:
           name: site
@@ -88,13 +95,20 @@ jobs:
           EOF2
           chmod 600 ~/.ssh/config
 
+      # Pages loaded before this deploy still name their own build's files (the browser UI and
+      # runtime are renamed every build), so the files of the last 72 hours of deploys stay.
+      # Listed before the upload, which gives every uploaded file the time of this deploy.
+      - name: Keep the files of recent deploys
+        run: |
+          rsync -r --list-only edge: > "$RUNNER_TEMP/edge-files.txt"
+          node scripts/keep-recent.mjs < "$RUNNER_TEMP/edge-files.txt" > "$RUNNER_TEMP/keep.rules"
       # Copy non-HTML assets first. The second pass publishes HTML and removes old files.
       - name: Upload assets
         run: |
           rsync -rlz --chmod=D755,F644 --exclude='*.html' dist/ edge:
       - name: Upload pages and remove old files
         run: |
-          rsync -rlz --chmod=D755,F644 --delete dist/ edge:
+          rsync -rlz --chmod=D755,F644 --delete --filter="merge $RUNNER_TEMP/keep.rules" dist/ edge:
 
       - name: Verify site responds
         run: |

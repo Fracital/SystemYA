@@ -38,7 +38,10 @@ How a page is served:
   of fetching it, so history, scrolling, Back and Forward and the
   `astro:page-load` events work as before and nothing is requested. All CSS
   and page scripts are in the shared layout bundle, so every page renders the
-  same from any entry.
+  same from any entry. The exception is the browser page: every move into or
+  out of `/?2`, and from `/?2` to `/?2` (other than a fragment change), is a
+  full page load. The edge isolates only that page (COOP and COEP), and only a
+  fresh document names the current build's UI and runtime files.
 - Links in the 2022 snapshots keep their old paths in `src/systemya/snapshots/`.
   `bookLinks()` rewrites them at build time, so the site shows and follows
   `/?1`, never `/theatre.html`. Code builds addresses with
@@ -212,6 +215,14 @@ that frame and replaces its history entry (`src/systemya/player.ts`).
 - `scripts/verify-static-dist.mjs` requires `dist/index.html` and rejects
   reserved edge paths, server build output, likely credentials and unexpected
   symlinks.
+- The deploy's deleting pass keeps every file of the deploys in the 72 hours
+  before the last one (`scripts/keep-recent.mjs`, fed `rsync --list-only` of
+  the edge, taken before the upload). Each build renames the browser UI and
+  the runtime, and a page loaded before a deploy (an open tab, its service
+  worker, or a page that Back or Forward takes from the browser's cache) still
+  names its own build's files. Deleted, the edge's fallback answers them with
+  the SystemYA shell, which shows "Page not found" in the browser page's frame
+  or, under its embedder policy, a blocked frame.
 
 ### Keeping STomp current
 
