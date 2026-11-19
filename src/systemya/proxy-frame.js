@@ -21,9 +21,10 @@
   // same origin, Fracital's public Wisp relay, no site pool.
   window.STOMP_CONFIG = CONFIG.stomp;
 
-  // The demo's server also answers /api/status, /api/commits and /suggestions. On SystemYA
-  // /api/ is Fracital's API, so those requests never leave the page: the status line and
-  // address suggestions are off, and the commit list asks GitHub's public API directly.
+  // The demo's server also answers /api/status and /api/commits. On SystemYA /api/ is
+  // Fracital's API, so those requests never leave the page: the status line is off, and the
+  // commit list asks GitHub's public API directly. The address bars' suggestions are
+  // SystemYA's own (src/systemya/omni/ui.ts, bundled after this file), and ask /api/complete.
   const pageFetch = window.fetch.bind(window);
   const unavailable = () =>
     Promise.reject(new TypeError("Not available on SystemYA"));
@@ -76,8 +77,7 @@
     }
     if (url.origin === location.origin) {
       if (url.pathname === "/api/commits") return commits();
-      if (url.pathname === "/api/status" || url.pathname === "/suggestions")
-        return unavailable();
+      if (url.pathname === "/api/status") return unavailable();
     }
     return pageFetch(input, init);
   };

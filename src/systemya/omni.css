@@ -1,0 +1,94 @@
+/* Suggestions under the 2022 search boxes (src/systemya/omni/home.ts): the list hangs under the
+   home page's and the navbar's form.omnibox in the look of the Theatre's suggestions (theatre.css),
+   which follow the 2022 omnibox. Colors come from the 2022 theme variables on #root. The selectors
+   outweigh main.css's rules for every child of the box. */
+
+#root .omnibox {
+  position: relative;
+}
+#root .omnibox > div.systemya-omni[role="listbox"] {
+  background: var(--background);
+  border: 1px solid var(--blue);
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  box-shadow: 0 6px 12px var(--shadow);
+  box-sizing: border-box;
+  color: var(--slate);
+  display: none;
+  left: 0;
+  max-height: min(70vh, 500px);
+  overflow-y: auto;
+  padding: 0;
+  position: absolute;
+  right: 0;
+  text-align: left;
+  top: 100%;
+  z-index: 20;
+}
+#root .omnibox[data-suggested] > div.systemya-omni[role="listbox"] {
+  display: block;
+}
+#root[data-page] .omnibox[data-suggested] > input {
+  border-bottom-left-radius: 0;
+}
+#root[data-page] .omnibox[data-suggested] > button[type="submit"] {
+  border-bottom-right-radius: 0;
+}
+#root[data-page] .omnibox[data-suggested] > * {
+  border-color: var(--blue);
+}
+.systemya-omni-header {
+  color: var(--subtle);
+  cursor: default;
+  font-size: 12px;
+  padding: 8px 12px 2px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.systemya-omni-row {
+  align-items: center;
+  color: var(--slate);
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  height: 42px;
+  padding: 0 12px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.systemya-omni-row:hover,
+.systemya-omni-row[data-hover] {
+  background: var(--accent);
+}
+.systemya-omni-row > .material-icons {
+  color: var(--subtle);
+  flex: none;
+  font-size: 20px;
+}
+.systemya-omni-icon {
+  flex: none;
+  height: 20px;
+  object-fit: contain;
+  width: 20px;
+}
+.systemya-omni-text {
+  flex: 1;
+  font-size: 15px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.systemya-omni-subtitle {
+  color: var(--subtle);
+  font-size: 13px;
+  margin-left: 8px;
+}
+.systemya-omni-hint {
+  color: var(--subtle);
+  flex: none;
+  font-size: 13px;
+}

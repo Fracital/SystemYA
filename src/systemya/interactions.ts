@@ -7,6 +7,7 @@ import { mountAccount, startAccountSession } from "./account";
 import { mountBookmark } from "./bookmark";
 import { mountChatLinks } from "./chat-links";
 import { mountPlayer } from "./player";
+import { HOME_ENGINE, mountOmnibox } from "./omni/home";
 // Astro ClientRouter preserves same-document navigation between the recovered pages, all of them
 // served from "/" by number (routes.ts).
 // Each page-load rebinds the captured 2022 markup without injecting a new interface.
@@ -15,7 +16,7 @@ function targetUrl(value: string): string {
   const input = value.trim();
   if (/^https?:\/\//i.test(input)) return input;
   if (/^[^\s]+\.[^\s]+$/.test(input)) return `https://${input}`;
-  return `https://www.google.com/search?q=${encodeURIComponent(input)}`;
+  return `${HOME_ENGINE.url}${encodeURIComponent(input)}`;
 }
 
 function initSystemYA(): void {
@@ -84,6 +85,10 @@ function initSystemYA(): void {
       } catch {}
     });
 
+  const openSite = (url: string): void => {
+    nav.dataset.search = "0";
+    openProxy(url);
+  };
   for (const form of root.querySelectorAll<HTMLFormElement>("form.omnibox")) {
     form.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -92,6 +97,7 @@ function initSystemYA(): void {
       nav.dataset.search = "0";
       openProxy(targetUrl(input.value));
     });
+    mountOmnibox(form, targetUrl, openSite);
   }
 
   const heading = root.querySelector<HTMLElement>("[data-typewriter]");
