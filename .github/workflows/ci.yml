@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches-ignore: [main]
+    branches-ignore: [main, stomp-signal] # stomp-signal only starts stomp-update.yml
 
 permissions:
   contents: read
