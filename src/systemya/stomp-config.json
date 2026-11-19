@@ -2,6 +2,6 @@
   "directory": "/vendor/rt/",
   "ui": "/ui/",
   "wisp": "wss://holywisp.fracit.al/",
-  "webTransport": true,
+  "webTransport": false,
   "repo": "Fracital/powerMouse"
 }

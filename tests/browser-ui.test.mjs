@@ -224,8 +224,13 @@ test(
       const frame = await readFile(join(out, `sy.${runtime.stamp}.js`), "utf8");
       assert.ok(frame.includes(runtime.assets.serviceWorker));
       assert.ok(frame.includes(names.access));
-      // Wisp over the relay's WebTransport session first, its WebSocket as the fallback
-      assert.match(frame, /webTransport:(?:!0|true)[,}]/);
+      // the UI's carrier follows stomp-config.json's webTransport
+      assert.match(
+        frame,
+        config.webTransport
+          ? /webTransport:(?:!0|true)[,}]/
+          : /webTransport:(?:!1|false)[,}]/,
+      );
       assert.match(js, /webTransport:[A-Z_]+/);
       assert.match(js, /CFG\.webTransport/);
     } finally {
@@ -371,8 +376,10 @@ test("CI checks out the submodule, pinned shallow", async () => {
   assert.equal(config.directory, "/vendor/rt/");
   assert.equal(config.ui, "/ui/");
   assert.equal(config.wisp, "wss://holywisp.fracit.al/");
-  // the session is found by the relay's /webtransport.json, the WebSocket kept as the fallback
-  assert.equal(config.webTransport, true);
+  // WebTransport is wired through but ships off: holyWisp's session is far slower than its
+  // WebSocket for now, and a first GitHub visit over it stalls
+  assert.equal(typeof config.webTransport, "boolean");
+  assert.equal(config.webTransport, false);
   assert.match(
     await source("src/systemya/stomp.ts"),
     /const WEB_TRANSPORT = config\.webTransport;[\s\S]*webTransport: WEB_TRANSPORT,/,
