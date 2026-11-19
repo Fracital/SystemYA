@@ -56,6 +56,13 @@ May 2022 interface and builds to a static Astro SPA at `systemya.fracit.al`.
   publishing new pages and deleting old files.
 - CI runs `npm ci`, `npm run verify`, `npm run build` and the static output
   check. Do not weaken tests to hide failures.
+- `stomp-update.yml` moves `@sysce/stomp` and the `vendor/powermouse`
+  submodule to each nightly by itself (a `stomp-nightly` dispatch from
+  powerMouse, an hourly schedule as the fallback), only after the full gate and
+  the STomp smoke test pass, and starts the deploy. It changes nothing but the
+  pin. When a nightly moves a string a patch in `prepare-powermouse.mjs` or a
+  file `prepare-stomp.mjs` names, fix the script, not the check; see "Keeping
+  STomp current" in `docs/DEPLOYMENT.md`.
 
 ## How to verify
 

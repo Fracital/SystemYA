@@ -199,27 +199,56 @@ that frame and replaces its history entry (`src/systemya/player.ts`).
 ### Keeping STomp current
 
 powerMouse publishes its `master` branch to npm as `@sysce/stomp@nightly`
-at 07:17 UTC, and only publishes a commit whose CI passed. At 08:53 and 20:53
-UTC, `stomp-update.yml` reads the nightly tag. If that version was published
-after the pinned one, the workflow updates `package.json` and
-`package-lock.json` to it. It also moves the `vendor/powermouse` submodule to
-the commit the version was built from, so the UI and the runtime always come
-from the same tested commit. The submodule only moves forward along `master`,
-and the package never moves to an older version. The workflow then runs the
-same checks as CI and the deploy: `npm ci`, `npm run verify`, `npm run build`,
-`verify-static-dist.mjs` and the deploy contract. After that,
-`scripts/stomp-smoke.mjs` starts STomp from `dist/` in headless Chrome and
-opens a page through the public relay. Nothing else in the build starts
-STomp. If all of that passes, `github-actions[bot]` commits the change to
-`main` and starts `deploy.yml` with `gh workflow run`, because a push made
-with `GITHUB_TOKEN` starts no workflow. If `main` moved during the check,
-nothing is pushed, and the next run tries again on top of the new `main`. If
-a check fails, `main` keeps its pin and the workflow opens an issue titled
-"STomp update needs attention", or comments on the one already open. The
-issue names the failed step and how to reproduce it. The next update that
-passes closes the issue. Use "Run workflow" to try now, or to try a specific
-version. The workflow needs no secrets beyond the `GITHUB_TOKEN` that
-Actions provides.
+at 07:17 UTC and on a manual run, and only publishes a commit whose CI
+passed. `stomp-update.yml` moves SystemYA to each new nightly by itself:
+
+- Triggers. powerMouse's nightly workflow sends this repository a
+  `repository_dispatch` of type `stomp-nightly` with the version it published
+  in `client_payload.version`, so the update starts within minutes of the
+  publish. The schedule runs every hour at :41 as the fallback for a lost
+  dispatch, and until powerMouse's `nightly.yml` sends one. "Run workflow" tries now, optionally with a specific `version`
+  and with `dry_run`, which runs every check and pushes nothing.
+- The probe job reads the pin on `main` and npm, and stops in seconds when
+  both are current. A dispatched version can take minutes to reach the
+  registry, so the probe waits for it, up to 20 minutes. The package only
+  moves to a version published after the pinned one, and the
+  `vendor/powermouse` submodule moves to the commit the version was built
+  from (its `gitHead`), only forward along `master`, so the UI and the runtime
+  always come from the same tested commit. A manual run with a `version` may
+  go back.
+- The check job holds no write token. It bumps `package.json` and
+  `package-lock.json` and the submodule, then runs the same checks as CI and
+  the deploy: `npm ci`, `npm run verify`, `npm run build` (which runs
+  `prepare:stomp`, so every patch and stamped name, and the neutrality check
+  in `verify-static-dist.mjs`) and the deploy contract. After that,
+  `scripts/stomp-smoke.mjs` starts STomp from `dist/` in headless Chrome and
+  opens a page through the public relay. Nothing else in the build starts
+  STomp. Registry and network steps get four tries, for a tarball that is not
+  served yet. The check fails if anything but the pin changed, so the
+  updater never touches SystemYA's own settings, such as `webTransport` in
+  `src/systemya/stomp-config.json`.
+- If all of that passes, `github-actions[bot]` commits the change to `main`.
+  A push made with `GITHUB_TOKEN` starts no workflow, so the publish job
+  starts `deploy.yml` with `gh workflow run`, finds that run and waits for it
+  to pass.
+- If `main` moved during the check, nothing is pushed: the publish job starts
+  the workflow again, which bumps and tests on top of the new `main`, up to
+  three times in a row. Runs wait for each other (one concurrency group), so
+  two updates never race.
+- If a check fails, `main` keeps its pin and the workflow opens an issue titled
+  "STomp update needs attention", or comments on the one already open. The
+  issue quotes the error lines (a patch that no longer matches names its file,
+  its number in `patches()` and the string; a file the UI names but the build
+  does not serve names the upstream file), the failed step and how to
+  reproduce it. If the deploy fails, the issue says so. The hourly schedule
+  retests a version that failed every 6 hours; a new nightly, a dispatch or a
+  manual run tests at once. The next update that passes closes the issue, as
+  does an hourly probe that finds `main` current and its last deploy passed.
+
+The workflow needs no secrets beyond the `GITHUB_TOKEN` that Actions
+provides. The dispatch is sent from powerMouse with a token of its own (a
+fine-grained token with Contents read and write on this repository); without
+it the hourly schedule still picks up every nightly.
 
 The `build` script runs `prepare:stomp`, `astro check`, `astro build` and the
 static output check. website2's SDK build (`npm run build:sdk`) is not part of

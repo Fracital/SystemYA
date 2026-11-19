@@ -106,11 +106,11 @@ export function patches({ directory, ui, files, runtime, names }) {
 
 /** Apply `list` to `text`. A count of "all" means at least once; a number, exactly that many. */
 export function applyPatches(name, text, list) {
-  for (const [from, to, times = 1] of list) {
+  for (const [index, [from, to, times = 1]] of list.entries()) {
     const count = text.split(from).length - 1;
     if (times === "all" ? count < 1 : count !== times)
       throw new Error(
-        `powerMouse ${name}: expected "${from}" ${times === "all" ? "at least once" : `${times} time(s)`}, found it ${count} times. Update scripts/prepare-powermouse.mjs for the new upstream.`,
+        `powerMouse ${name}, patch ${index + 1} of ${list.length}: expected ${JSON.stringify(from)} ${times === "all" ? "at least once" : `${times} time(s)`}, found it ${count} times. Update its entry in patches() in scripts/prepare-powermouse.mjs for the new upstream.`,
       );
     text = text.split(from).join(to);
   }
@@ -236,11 +236,20 @@ export async function preparePowerMouse({
     ...[...out.keys()].map((name) => `${ui}${name}`),
     ...runtime.files.map((name) => `${directory}${name}`),
   ]);
-  const texts = [...out].filter(([name]) => /\.(?:html|js|css)$/.test(name));
+  // errors name the upstream file (pm/main.js), not this build's stamped copy
+  const upstream = Object.fromEntries(
+    Object.entries(files).map(([from, to]) => [to, from]),
+  );
+  const texts = [...out]
+    .filter(([name]) => /\.(?:html|js|css)$/.test(name))
+    .map(([name, text]) => [
+      upstream[name] ? `${upstream[name]} (served as ${name})` : name,
+      text,
+    ]);
   const missing = missingReferences(texts, served, { ui, directory });
   if (missing.length)
     throw new Error(
-      `The browser UI names files that are not served:\n${missing.join("\n")}`,
+      `The browser UI names files that are not served:\n${missing.join("\n")}\nAdd a patch for each in patches() in scripts/prepare-powermouse.mjs, or serve the file (ASSETS).`,
     );
   await syncDirectory(destination, out);
   console.log(`Browser UI: ${out.size} files in ${destination}`);
