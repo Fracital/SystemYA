@@ -169,6 +169,49 @@ try {
   else if (result.title !== expectTitle)
     failures.push(`${target} opened as "${result.title}" (${result.url})`);
   else console.log(`PASS ${target} opened through STomp: "${result.title}"`);
+
+  // The same page through the browser on /?2, as a visitor opens it: the UI's own code registers
+  // the service worker and starts the controller (a UI that names a file dist/ does not have, as
+  // e5f74c5's serviceWorker.js did, fails here and not above). A context of its own, so the
+  // worker the first check registered is not already there.
+  const visitor = await browser.newContext();
+  visitor.on("response", (response) => {
+    const url = new URL(response.url());
+    if (
+      url.origin === new URL(base).origin &&
+      url.pathname.startsWith(config.directory) &&
+      response.status() >= 400
+    )
+      missing.push(`${response.status()} ${url.pathname}`);
+  });
+  const app = await visitor.newPage();
+  app.on("pageerror", (error) => console.log(`  [pageerror /?2] ${error}`));
+  await app.goto(`${base}?2`);
+  const started = Date.now();
+  let ui = null;
+  while (!ui && Date.now() - started < timeout) {
+    ui = app
+      .frames()
+      .find((frame) => frame.url().includes(config.ui ?? "/ui/"));
+    if (!ui) await app.waitForTimeout(250);
+  }
+  if (!ui) failures.push("/?2 did not show the browser UI's frame");
+  else {
+    const bar = ui.locator("input").first();
+    await bar.fill(target);
+    await bar.press("Enter");
+    let title = "";
+    while (title !== expectTitle && Date.now() - started < 2 * timeout) {
+      for (const frame of app.frames())
+        if ((await frame.title().catch(() => "")) === expectTitle)
+          title = expectTitle;
+      if (title !== expectTitle) await app.waitForTimeout(500);
+    }
+    if (title === expectTitle)
+      console.log(`PASS ${target} opened in the browser on /?2`);
+    else failures.push(`${target} did not open in the browser on /?2`);
+  }
+  await visitor.close();
 } finally {
   await browser.close();
   server.close();
