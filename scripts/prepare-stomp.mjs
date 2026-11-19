@@ -49,8 +49,8 @@ export const PAGE_FILES = Object.freeze({
   search: ["SearchBuilder.js", "sb.js"],
 });
 
-/** In dist/ but loaded by nothing at run time (no bundle names it). */
-const UNUSED = new Set(["codec.wasm"]);
+/** In dist/ but loaded by nothing at run time (no bundle names it; build.json is the package's version stamp). */
+const UNUSED = new Set(["codec.wasm", "build.json"]);
 
 export const stamped = (name, stamp) =>
   name.replace(/\.(?=[^.]+$)/, `.${stamp}.`);

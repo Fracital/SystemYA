@@ -41,6 +41,8 @@ export function patches({ directory, ui, files, runtime, names }) {
       // the Shields panel's notes on how block lists are fetched
       ["through the proxy", "through the relay", 2],
       ["'/pm/", `'${ui}`, "all"],
+      // markup in template strings (the About panel's logo)
+      ['"/pm/', `"${ui}`, "all"],
       // the bookmark icon check, a regular expression (/^\/pm\/icons\/[\w.-]+$/)
       ["\\/pm\\/", ui.replace(/\//g, "\\/"), 1],
     ],
