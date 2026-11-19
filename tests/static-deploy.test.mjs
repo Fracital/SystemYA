@@ -28,8 +28,8 @@ test("Astro builds static files for the registered SystemYA origin", () => {
 test("Only historical SPA pages are active in src/pages", async () => {
   const { readdirSync } = await import("node:fs");
   const names = readdirSync(new URL("../src/pages/", import.meta.url)).sort();
-  // Pages are files; /chat/ and /account/ are folders so the bare paths reach them on the edge.
-  const folders = ["account", "chat"];
+  // Pages are files; /chat/, /account/ and /app/ are folders so the bare paths reach them on the edge.
+  const folders = ["account", "app", "chat"];
   assert.ok(
     names.every((name) => name.endsWith(".astro") || folders.includes(name)),
     names.join(", "),
@@ -124,5 +124,5 @@ test("Stale chunk loader reloads before retaining broken SPA state", () => {
   const layout = read("src/layouts/SystemYALayout.astro");
   assert.match(layout, /vite:preloadError/);
   assert.match(layout, /window\.location\.reload/);
-  assert.match(read("src/systemya/interactions.ts"), /Page not found/);
+  assert.match(read("src/systemya/route-pages.ts"), /Page not found/);
 });

@@ -1,0 +1,84 @@
+/* The site shell around the May 2022 pages: the navbar's account button, focus rings for the
+   navbar, and the full-screen page mode used by /chat/ and /proxy/. */
+
+/* Account button, sized and spaced like the 2022 search and theme buttons (nav>button in
+   main.css). The icon is Material Symbols Outlined "account_circle" (weight 400, grade 0,
+   optical size 24) from Google Fonts Icons, Apache License 2.0; its path is inlined in each
+   snapshot's <nav>. At 24px its ring is 20px across with a 2px stroke, the same as the theme
+   toggle beside it. */
+nav > .account {
+  align-items: center;
+  border-radius: 2px;
+  box-sizing: content-box;
+  color: inherit;
+  display: flex;
+  flex: none;
+  height: 25px;
+  justify-content: center;
+  margin: auto 5px;
+  padding: 5px;
+  position: relative;
+  width: 25px;
+}
+nav > .account:hover {
+  background: var(--accent);
+  text-decoration: none;
+}
+nav > .account > svg {
+  display: block;
+  height: 24px;
+  width: 24px;
+}
+
+/* main.css removes every outline (*{outline:none}); give keyboard users one back in the navbar. */
+nav a:focus-visible,
+nav button:focus-visible,
+nav > .expand:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+/* Full-screen mode: <SystemYALayout fullscreen> renders #root data-fullscreen="1".
+   Contract for full-screen pages: the page's content is #root > main. It fills the viewport
+   below the navbar exactly (100dvh minus the navbar's height, which flex layout works out so the
+   1px navbar border and any future navbar change are covered), at 100% width, with no margin or
+   padding, no page scroll and no footer. main is a column flexbox with a definite height, so its
+   child can use flex: 1 or width/height 100%; an iframe child is made block, borderless and
+   100% x 100% here. The navbar keeps its z-index, so the mobile menu still drops over main. */
+#root[data-fullscreen="1"] {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+#root[data-fullscreen="1"] > footer {
+  display: none;
+}
+#root[data-fullscreen="1"] > nav {
+  flex: none;
+}
+#root[data-fullscreen="1"] > main {
+  box-sizing: border-box;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  margin: 0;
+  max-width: none;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  width: 100%;
+}
+#root[data-fullscreen="1"] > main > iframe {
+  border: 0;
+  display: block;
+  flex: 1 1 0;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+/* /chat/: holt in a same-origin iframe, laid out by the full-screen rules above. */
+#root[data-page="chat"] .systemya-chat iframe {
+  background: var(--background, #fff);
+}

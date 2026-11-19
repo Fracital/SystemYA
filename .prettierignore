@@ -2,11 +2,11 @@
 archive/
 legacy/
 sdk/
+vendor/
 run-server.js
 runtime.js
 public/
 src/systemya/snapshots/
-src/systemya/theatre-catalog-2022.json
 docs/*.json
 package-lock.json
 # Copied from Fracital unchanged; Fracital formats them.

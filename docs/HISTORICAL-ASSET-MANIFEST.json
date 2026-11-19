@@ -124,10 +124,10 @@
       "role": "sprite",
       "original_url": "https://sys32.dev/static/media/theatre.4cf739e3dd20f770bb30.webp",
       "wayback_url": "https://web.archive.org/web/20220526154012im_/https://sys32.dev/static/media/theatre.4cf739e3dd20f770bb30.webp",
-      "local_path": "public/static/media/theatre.4cf739e3dd20f770bb30.webp",
+      "local_path": null,
       "present_in_user_archives": true,
       "verified_original_bytes": true,
-      "status": "recovered_from_wayback_user_upload",
+      "status": "recovered_from_wayback_user_upload; removed from the build on 2026-11-18 when the Theatre moved to the Holy Unblocker Games SDK, restore from git history (commit c44fa79) by checksum",
       "sha256": "5a525b5055dea581972a77ca29dc836d34fb2a8bc410b5c569360a0c74a33da9",
       "size_bytes": 407838
     }

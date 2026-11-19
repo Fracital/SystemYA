@@ -1,4 +1,4 @@
-// The /account/ page: Fracital Accounts (src/fracital/auth.ts) in a card laid out like Fracital's about:account.
+// The account page (/?7, routes.ts): Fracital Accounts (src/fracital/auth.ts) in a card laid out like Fracital's about:account.
 import {
   ACCOUNT_EVENT,
   addPasskey,
@@ -36,6 +36,7 @@ import {
   unlinkCrossSite,
 } from "../fracital/cross-site";
 import { icon, systemyaMark, type IconName } from "./account-icons";
+import { routeHref, routeQuery } from "./routes";
 
 const PROVIDERS: Record<SocialProvider, { label: string; icon: IconName }> = {
   google: { label: "Google", icon: "google" },
@@ -84,7 +85,9 @@ export function mountAccount(root: HTMLElement): void {
   if (!host || host.dataset.bound === "1") return;
   host.dataset.bound = "1";
 
-  const params = new URLSearchParams(location.search);
+  // Email links land on /account/?reset=1&token=... or ?verified=1, which the entry script turns
+  // into /?7&reset=1&token=...; the route number is not one of the link's params.
+  const params = new URLSearchParams(routeQuery(location.search));
   const resetLink = params.has("reset");
   const linkError = !!params.get("error");
   let resetToken = resetLink && !linkError ? params.get("token") : null;
@@ -98,7 +101,8 @@ export function mountAccount(root: HTMLElement): void {
       : linkError
         ? "That verification link is invalid or expired. Sign in and send a new one from your account page."
         : "";
-  if (params.toString()) history.replaceState(null, "", location.pathname);
+  if (params.toString())
+    history.replaceState(history.state, "", routeHref("account"));
 
   // Signed-in panels that open in place.
   let pwForm = false;

@@ -56,7 +56,10 @@ The CSS names 12 media files. Seven were downloaded from the Wayback capture
 and imported without modification:
 
 - `light.2d95225a7bb6ff1db853.svg` and `dark.8cbd0429f3449df8c19c.svg`
-- `theatre.4cf739e3dd20f770bb30.webp`
+- `theatre.4cf739e3dd20f770bb30.webp`, the Theatre sprite. It left the build
+  when the Theatre moved to the Holy Unblocker Games SDK (see
+  `GAMES-SDK-HOLT.md`). Its checksum stays in
+  `HISTORICAL-ASSET-MANIFEST.json`, and git history has the file.
 - `MaterialIcons-Regular.97b9b1857a2af7322eba.woff2`
 - `segoe-ui-400.1a84982fb6140613fadc.woff2`, true weight 400
 - `segoe-ui-700.c408ee083ec612e2efcf.woff2`, which identifies internally as
@@ -89,7 +92,7 @@ default.
 ## Runtime fallbacks
 
 The runtime CSS uses local font URLs only. `src/systemya/historical-media.ts`
-loads the grid and sprite from their local paths. If a file is missing it tries
+loads the grid from its local paths. If a file is missing it tries
 the Wayback capture URL, and for the grid it then falls back to
 `public/systemya-2022/fallback/*-grid.svg`, which is not the original grid and
 sets `data-grid-source="fallback"`.

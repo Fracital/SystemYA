@@ -29,9 +29,10 @@ test("Astro renders historical snapshots through ClientRouter", () => {
   const layout = read("src/layouts/SystemYALayout.astro");
   assert.match(layout, /ClientRouter/);
   assert.match(layout, /getSystemYASnapshot\(page\)/);
-  assert.match(layout, /systemya-service-frame/);
+  // The browser is a page (/app/), not an overlay over every page.
+  assert.doesNotMatch(layout, /systemya-service/);
   assert.doesNotMatch(layout, /UltravioletScripts/);
-  assert.match(layout, /stomp\.css/);
+  assert.match(layout, /proxy\.css/);
 });
 
 test("navbar matches 2022 capture", () => {
@@ -45,6 +46,74 @@ test("navbar matches 2022 capture", () => {
   assert.match(extracted, /nav-search/);
   assert.match(extracted, /class="search"/);
   assert.match(extracted, /class="lightswitch"/);
+});
+
+test("every snapshot has the same navbar: Proxy link and an account icon button", () => {
+  const navs = pages.map(
+    (page) =>
+      read(`src/systemya/snapshots/${page}.html`).match(
+        /<nav\b[^>]*>[\s\S]*?<\/nav>/,
+      )?.[0],
+  );
+  for (const nav of navs) assert.equal(nav, navs[0]);
+  const nav = navs[0];
+  // The browser's label reads "Proxy" through the 2022 obfuscation (only real-class letters
+  // show); the markup never has the plain word.
+  const real = ["G", "J", "P", "S", "W", "h", "v"];
+  const label = (html) =>
+    html
+      .replace(/<s class="(\w)">([^<]*)<\/s>/g, (_, c, t) =>
+        real.includes(c) ? t : "",
+      )
+      .replace(/<[^>]+>/g, "");
+  const links = [
+    ...nav.matchAll(
+      /<a class="entry text" href="([^"]+)"><span>([\s\S]*?)<\/span><\/a>/g,
+    ),
+  ].map((m) => `${label(m[2])} ${m[1]}`);
+  assert.deepEqual(links, [
+    "Theatre /theatre.html",
+    "Proxy /app/",
+    "Chat /chat",
+    "Support /support.html",
+  ]);
+  assert.doesNotMatch(nav, /proxy/i);
+  assert.doesNotMatch(nav, /<span>Account<\/span>/);
+  // The account button sits after the theme toggle, with an accessible name and a credited icon.
+  assert.match(
+    nav,
+    /class="lightswitch">[\s\S]*?<\/button><!--[^>]*account_circle[^>]*Apache[^>]*--><a aria-label="Account" class="account" href="\/account\/"><svg aria-hidden="true" viewbox="0 -960 960 960"/,
+  );
+});
+
+test("full-screen mode: layout prop, chat opts in, CSS hides the footer and fills main", () => {
+  const layout = read("src/layouts/SystemYALayout.astro");
+  assert.match(layout, /fullscreen\?: boolean/);
+  assert.match(layout, /data-fullscreen=\{fullscreen \? "1" : "0"\}/);
+  assert.match(layout, /shell\.css/);
+  // /chat/ only: chat.astro would build /chat.html for the same route
+  assert.ok(!existsSync(new URL("../src/pages/chat.astro", import.meta.url)));
+  assert.match(
+    read("src/pages/chat/index.astro"),
+    /<SystemYALayout page="chat"[^>]*\bfullscreen\b/,
+  );
+  for (const page of ["index", "theatre", "support", "contact", "privacy"]) {
+    const file = page === "index" ? "index.astro" : `${page}.astro`;
+    assert.doesNotMatch(read(`src/pages/${file}`), /fullscreen/);
+  }
+  const css = read("src/systemya/shell.css");
+  assert.match(
+    css,
+    /#root\[data-fullscreen="1"\] > footer \{\s*display: none;/,
+  );
+  assert.match(
+    css,
+    /#root\[data-fullscreen="1"\] \{[^}]*height: 100dvh;[^}]*overflow: hidden;/,
+  );
+  assert.match(
+    css,
+    /#root\[data-fullscreen="1"\] > main \{[^}]*flex: 1 1 0;[^}]*min-height: 0;/,
+  );
 });
 
 test("Astro startup still uses holyWisp, not a replacement transport", () => {
@@ -69,5 +138,7 @@ test("type-safe navbar interaction initialization", () => {
   assert.match(script, /astro:page-load/);
   assert.match(script, /systemya-theme/);
   assert.match(script, /data-typewriter/);
-  assert.match(script, /openStomp/);
+  assert.match(script, /openProxy\(targetUrl\(input\.value\)\)/);
+  assert.match(script, /mountProxy\(root\)/);
+  assert.match(script, /^import "\.\/router";$/m);
 });

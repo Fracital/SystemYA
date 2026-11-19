@@ -2,7 +2,7 @@
 
 A restoration of the May 26, 2022 SystemYA interface, built with
 [Astro](https://astro.build/) and TypeScript, using the original recovered
-homepage, Theatre artwork, grid SVGs, stylesheet and typography. Repository:
+homepage, grid SVGs, stylesheet and typography. Repository:
 `Fracital/SystemYA`.
 
 The site is <https://systemya.fracit.al>. It is static: the edge serves the
@@ -27,20 +27,30 @@ deployed site.
 
 ## Frontend
 
-The pages are the 2022 SystemYA pages plus chat and accounts:
+The pages are the 2022 SystemYA pages plus chat, accounts and the browser
+page. Each is a number on `/`, listed in the route book
+(`src/systemya/routes.ts`), so no address names a page:
 
-| URL              | Page                                                                            |
-| ---------------- | ------------------------------------------------------------------------------- |
-| `/`              | Homepage and historical search interface                                        |
-| `/theatre.html`  | The recovered 34-game Theatre catalog plus the Holy Unblocker Games SDK catalog |
-| `/support.html`  | Support                                                                         |
-| `/contact.html`  | Contact                                                                         |
-| `/privacy.html`  | Privacy                                                                         |
-| `/chat`          | Holt chat embedded from `/room/`                                                |
-| `/account/`      | Fracital Accounts                                                               |
-| `/bookmark.html` | Insta-Proxy, recovered from the 2022 bundle                                     |
+| Address | Page                                                                  |
+| ------- | --------------------------------------------------------------------- |
+| `/`     | Homepage and historical search interface                              |
+| `/?1`   | Theatre: the Holy Unblocker games catalog in the 2022 Theatre drawers |
+| `/?2`   | Browser page                                                          |
+| `/?3`   | Holt chat embedded from `/room/`                                      |
+| `/?4`   | Support                                                               |
+| `/?5`   | Contact                                                               |
+| `/?6`   | Privacy                                                               |
+| `/?7`   | Fracital Accounts                                                     |
+| `/?8`   | Insta-Proxy, recovered from the 2022 bundle                           |
 
-Astro's `ClientRouter` handles navigation. The historical captures are kept
+Numbers only grow: a new page takes the next one, and a removed page's number
+is retired, never reused. The old paths (`/theatre.html`, `/account/`, `/app/`
+and the rest) still load and turn into their number. See "Routes" in
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for how pages are served and how to
+add one.
+
+Astro's `ClientRouter` handles navigation; `src/systemya/router.ts` feeds it
+pages from the book without fetching them. The historical captures are kept
 under `archive/` and `src/systemya/snapshots/`. Routes, edge proxies, sign-in
 and deployment are described in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
@@ -55,7 +65,7 @@ and deployment are described in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 | `npm run verify`           | Structural and archive integrity checks, plus tests                |
 | `npm run verify:static`    | Audit a completed `dist/` directory                                |
 | `npm run verify:deploy`    | Run the static deployment contract test suite                      |
-| `npm run prepare:stomp`    | Copy STomp/Epoxy browser runtime assets                            |
+| `npm run prepare:stomp`    | Copy the browser UI and its runtime under stamped names            |
 | `npm run build:sdk`        | Build website2's SDK tooling, not required for static production   |
 | `npm run build:obfuscated` | Optional Vite client-chunk obfuscated build                        |
 | `npm run games`            | Original website2 game-data utility                                |

@@ -1,9 +1,11 @@
 import type {
   HUCatalogClient,
+  ListData,
+  ListOptions,
+  TheatreEntry,
   TheatreEntryMin,
 } from "../../sdk/src/types/index";
-import { encryptURL } from "../lib/cryptURL";
-import { openEmbed, openStomp } from "./stomp";
+import { openFrame, openProxy } from "./proxy";
 
 declare global {
   interface Window {
@@ -11,44 +13,90 @@ declare global {
   }
 }
 
-const PAGE_SIZE = 24;
+// The edge serves Holy Unblocker's Games SDK bootstrap here. It defines the global HU client,
+// whose opaque /cdn/ routes are signed for this visitor's route cookie.
 const BOOTSTRAP = "/cdn/index.js";
 let bootstrap: Promise<HUCatalogClient> | undefined;
 
-function loadSDK(): Promise<HUCatalogClient> {
+function injectBootstrap(attempt: number): Promise<HUCatalogClient> {
+  return new Promise<HUCatalogClient>((resolve, reject) => {
+    const script = document.createElement("script");
+    // A retry adds a query string so a failed response is not reused. The bootstrap derives
+    // its route base from the script's pathname, so the query does not change any route.
+    script.src = attempt === 0 ? BOOTSTRAP : `${BOOTSTRAP}?retry=${attempt}`;
+    script.async = true;
+    script.dataset.systemyaSdk = "";
+    script.onload = () =>
+      window.HU
+        ? resolve(window.HU)
+        : reject(new Error("The Games SDK loaded but did not start"));
+    script.onerror = () => {
+      script.remove();
+      reject(new Error("The Games SDK could not be downloaded"));
+    };
+    document.body.append(script);
+  });
+}
+
+/** Load the edge's SDK once per document. A failed load is retried once, then on the next call. */
+export function loadSDK(): Promise<HUCatalogClient> {
   if (window.HU) return Promise.resolve(window.HU);
-  if (!bootstrap) {
-    bootstrap = new Promise<HUCatalogClient>((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = BOOTSTRAP;
-      script.async = true;
-      script.onload = () =>
-        window.HU
-          ? resolve(window.HU)
-          : reject(new Error("Games SDK did not initialize"));
-      script.onerror = () =>
-        reject(new Error("Games SDK bootstrap could not load"));
-      document.head.append(script);
-    }).catch((error: unknown) => {
+  bootstrap ??= injectBootstrap(0)
+    .catch(() => injectBootstrap(1))
+    .catch((error: unknown) => {
       bootstrap = undefined;
       throw error;
     });
-  }
   return bootstrap;
 }
 
-function make<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  label?: string,
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (label !== undefined) node.textContent = label;
-  return node;
+// Flash games need website2's Ruffle page at /flash, which the static build does not ship.
+const UNSUPPORTED_TYPES = new Set(["flash"]);
+
+/** The SDK's game types that SystemYA can open, for every catalog query. */
+export function playableTypes(sdk: HUCatalogClient): string[] {
+  return sdk.types.filter((type) => !UNSUPPORTED_TYPES.has(type));
 }
 
-function safeLocalPath(value: unknown): string | null {
+/** website2's theatre sort names and the API sort and order each one maps to (renderTheatre.ts). */
+export const SORTS = {
+  mostPopular: { sort: "plays" },
+  leastPopular: { sort: "plays", order: "asc" },
+  recentlyAddedDESC: { sort: "index" },
+  recentlyAddedASC: { sort: "index", order: "asc" },
+  nameASC: { sort: "name", order: "asc" },
+  nameDESC: { sort: "name", order: "desc" },
+} as const satisfies Record<string, Pick<ListOptions, "sort" | "order">>;
+
+export type SortKey = keyof typeof SORTS;
+
+export function isSortKey(value: unknown): value is SortKey {
+  return typeof value === "string" && Object.hasOwn(SORTS, value);
+}
+
+/** website2's per-page count on category and search pages. */
+export const PAGE_SIZE = 30;
+/** website2's per-category count on the popular games page. */
+export const GROUP_SIZE = 15;
+
+export function queryCatalog(
+  sdk: HUCatalogClient,
+  options: ListOptions,
+  signal?: AbortSignal,
+): Promise<ListData> {
+  return sdk.query({ ...options, type: playableTypes(sdk) }, signal);
+}
+
+/** First category id of an entry. The API sends a string and the types say string[]. */
+export function primaryCategory(item: TheatreEntryMin): string | undefined {
+  const value: unknown = item.category;
+  if (typeof value === "string") return value || undefined;
+  if (Array.isArray(value) && typeof value[0] === "string")
+    return value[0] || undefined;
+  return undefined;
+}
+
+export function safeLocalPath(value: unknown): string | null {
   if (
     typeof value !== "string" ||
     !value.startsWith("/") ||
@@ -62,168 +110,72 @@ function safeLocalPath(value: unknown): string | null {
     : null;
 }
 
-async function playGame(
-  client: HUCatalogClient,
-  item: TheatreEntryMin,
-  report: HTMLElement,
-): Promise<void> {
-  report.textContent = `Loading ${item.name}...`;
-  try {
-    const game = await client.getGame(item.id);
-    if (!game) throw new Error("This game is no longer available");
-    const localPlayer = safeLocalPath(game.launchPath);
-    const gameType = game.type.toLowerCase();
-
-    if (
-      gameType === "proxy" &&
-      typeof game.src === "string" &&
-      /^https?:\/\//i.test(game.src)
-    ) {
-      await openStomp(game.src);
-    } else if (gameType === "flash") {
-      const swf =
-        typeof game.assetPath === "string" ? game.assetPath : game.src;
-      if (!swf) throw new Error("Missing Flash game URL");
-      const resolvedSwf = new URL(swf, location.origin);
-      if (!/^https?:$/.test(resolvedSwf.protocol))
-        throw new Error("Unsupported Flash URL");
-      openEmbed(`/flash#${encryptURL(resolvedSwf.href)}`, game.name);
-    } else if (localPlayer) {
-      openEmbed(localPlayer, game.name);
-    } else {
-      throw new Error("This game has no supported launch route");
-    }
-
-    report.textContent = "";
-    void client.countPlay(game.id).catch(() => {});
-  } catch (error) {
-    report.textContent =
-      error instanceof Error ? error.message : "Game could not be opened";
-  }
+export function imageFor(sdk: HUCatalogClient, item: TheatreEntryMin): string {
+  return safeLocalPath(item.imagePath) || sdk.getImageUrl(item.id);
 }
 
-/** Add the official website2 game catalog below the unmodified 2022 card sections. */
-export function mountGamesSDK(root: HTMLElement): void {
-  if (
-    root.dataset.page !== "theatre" ||
-    root.querySelector("#systemya-sdk-catalog")
-  )
-    return;
-  const main = root.querySelector("main");
-  if (!main) return;
+/** How website2's TheatrePlayer opens a game, as one URL for SystemYA's frame. */
+function resolveLaunch(
+  game: TheatreEntry,
+): { kind: "proxy" | "frame"; url: string } | { error: string } {
+  const type = game.type.toLowerCase();
+  const src = typeof game.src === "string" ? game.src : "";
+  if (type === "proxy") {
+    return /^https?:\/\//i.test(src)
+      ? { kind: "proxy", url: src }
+      : { error: "This game has no site to open" };
+  }
+  if (UNSUPPORTED_TYPES.has(type))
+    return { error: "Flash games are not available on SystemYA" };
+  // Local games ("./...") are served through the SDK's signed asset path.
+  const asset = safeLocalPath(game.assetPath);
+  if (!asset) return { error: "This game has no supported launch route" };
+  const url = location.origin + asset;
+  if (type === "embed") return { kind: "frame", url };
+  if (type === "emulator" || type.startsWith("emulator.")) {
+    const player = safeLocalPath(game.playerPath);
+    if (!player) return { error: "This game's emulator is unavailable" };
+    const query = new URLSearchParams({ rom: url, core: "autodetect" });
+    return { kind: "frame", url: `${player}?${query}` };
+  }
+  return { error: "This game has no supported launch route" };
+}
 
-  const section = make("section", "systemya-sdk-catalog");
-  section.id = "systemya-sdk-catalog";
-  const heading = make("h2", undefined, "More games");
-  const intro = make("p", "systemya-sdk-intro", "Holy Unblocker game library");
-  const form = make("form", "systemya-sdk-search");
-  const search = make("input");
-  search.type = "search";
-  search.placeholder = "Search games";
-  search.setAttribute("aria-label", "Search game library");
-  const submit = make("button", undefined, "Search");
-  submit.type = "submit";
-  form.append(search, submit);
-  const status = make("p", "systemya-sdk-status");
-  status.setAttribute("role", "status");
-  const grid = make("div", "systemya-sdk-grid");
-  const pagination = make("div", "systemya-sdk-pagination");
-  const previous = make("button", undefined, "Previous");
-  const next = make("button", undefined, "Next");
-  previous.type = "button";
-  next.type = "button";
-  const pageLabel = make("span");
-  pagination.append(previous, pageLabel, next);
-  section.append(heading, intro, form, status, grid, pagination);
-  main.append(section);
+// Like website2's seenGames setting: count one play per game per browser.
+const SEEN_KEY = "systemya-seen-games";
+function countFirstPlay(sdk: HUCatalogClient, id: string): void {
+  let seen: string[] = [];
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(SEEN_KEY) ?? "[]");
+    if (Array.isArray(stored))
+      seen = stored.filter((x): x is string => typeof x === "string");
+  } catch {}
+  if (seen.includes(id)) return;
+  try {
+    localStorage.setItem(SEEN_KEY, JSON.stringify([...seen, id]));
+  } catch {}
+  void sdk.countPlay(id).catch(() => {});
+}
 
-  let page = 1;
-  let query = "";
-  let active = 0;
-  let sdk: HUCatalogClient | undefined;
-  let cancelled = false;
-  let controller: AbortController | undefined;
-
-  const load = async (): Promise<void> => {
-    if (cancelled) return;
-    const sequence = ++active;
-    controller?.abort();
-    controller = new AbortController();
-    grid.replaceChildren();
-    status.textContent = "Loading game library...";
-    previous.disabled = true;
-    next.disabled = true;
-    try {
-      sdk ??= await loadSDK();
-      if (cancelled || sequence !== active) return;
-      const result = await sdk.query(
-        {
-          q: query || undefined,
-          sort: query ? "relevance" : "popular",
-          page,
-          limit: PAGE_SIZE,
-        },
-        controller.signal,
-      );
-      if (cancelled || sequence !== active) return;
-      const games = Array.isArray(result.entries) ? result.entries : [];
-      for (const item of games) {
-        const button = make("button", "systemya-sdk-game");
-        button.type = "button";
-        const image = make("img");
-        image.loading = "lazy";
-        image.alt = "";
-        image.src = safeLocalPath(item.imagePath) || sdk.getImageUrl(item.id);
-        const label = make("span", undefined, item.name);
-        button.append(image, label);
-        button.addEventListener("click", () => {
-          if (sdk) void playGame(sdk, item, status);
-        });
-        grid.append(button);
-      }
-      status.textContent = games.length ? "" : "No games matched your search.";
-      const totalPages =
-        typeof result.pages === "number"
-          ? result.pages
-          : Math.ceil(Math.max(result.total, games.length) / PAGE_SIZE);
-      pageLabel.textContent = `Page ${page}${totalPages ? ` of ${totalPages}` : ""}`;
-      previous.disabled = page <= 1;
-      next.disabled =
-        games.length < PAGE_SIZE || (totalPages > 0 && page >= totalPages);
-    } catch (error) {
-      if (cancelled || sequence !== active || controller?.signal.aborted)
-        return;
-      status.textContent = `Game library unavailable: ${error instanceof Error ? error.message : String(error)}`;
-      const retry = make("button", undefined, "Retry");
-      retry.type = "button";
-      retry.addEventListener("click", () => {
-        void load();
-      });
-      grid.append(retry);
-    }
-  };
-
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    query = search.value.trim();
-    page = 1;
-    void load();
-  });
-  previous.addEventListener("click", () => {
-    page = Math.max(1, page - 1);
-    void load();
-  });
-  next.addEventListener("click", () => {
-    page++;
-    void load();
-  });
-  document.addEventListener(
-    "astro:before-swap",
-    () => {
-      cancelled = true;
-      controller?.abort();
-    },
-    { once: true },
-  );
-  void load();
+/**
+ * Open a catalog entry. Every Theatre launch goes through here: proxy games open their site in
+ * the proxy, every other game opens its same-origin player in SystemYA's frame.
+ * Resolves to an error message, or undefined once the game is open.
+ */
+export async function launchGame(
+  sdk: HUCatalogClient,
+  item: Pick<TheatreEntryMin, "id" | "name">,
+): Promise<string | undefined> {
+  try {
+    const game = await sdk.getGame(item.id);
+    if (!game) return "This game is no longer available";
+    const launch = resolveLaunch(game);
+    if ("error" in launch) return launch.error;
+    if (launch.kind === "proxy") openProxy(launch.url);
+    else openFrame(launch.url, game.name);
+    countFirstPlay(sdk, game.id);
+    return undefined;
+  } catch (error) {
+    return error instanceof Error ? error.message : "Game could not be opened";
+  }
 }

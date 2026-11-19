@@ -30,6 +30,18 @@ May 2022 interface and builds to a static Astro SPA at `systemya.fracit.al`.
 - The edge has no `/wisp/` route. STomp uses Fracital's public relay,
   `wss://holywisp.fracit.al/`. OAuth and Last.fm sign-in run through STomp
   (`src/fracital/stomp-oauth.ts`); see `docs/DEPLOYMENT.md`.
+- Pages are numbers on `/` (`/?1`, `/?2`, ...) in the route book,
+  `src/systemya/routes.ts`. A new page takes the next number; a removed page's
+  line stays with `retired` set, and its number is never reused or moved. Link
+  with `routeHref(page)` (snapshots keep their old paths, `bookLinks()`
+  rewrites them), and never link to an old path such as `/theatre.html`. See
+  "Routes" in `docs/DEPLOYMENT.md`.
+- `/?2` (old path `/app/`) is the browser page: the `vendor/powermouse`
+  submodule's UI, copied to `/ui/` with the runtime in `/vendor/rt/` by
+  `prepare:stomp`, under names stamped per build. Open sites with `openProxy(url)` and same-origin pages
+  with `openFrame(src, title)` from `src/systemya/proxy.ts`. Never write a
+  readable address into the fragment, and keep served names and the page's
+  text free of proxy words (`scripts/check-neutral-dist.mjs`).
 
 ## CI and deployment
 

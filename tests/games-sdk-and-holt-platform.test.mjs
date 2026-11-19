@@ -6,23 +6,48 @@ import { guestIdentityResponse } from "../src/server/holt-identity.mjs";
 
 const file = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
-test("The original website2 SDK router remains for reference, and 2022 Theatre loads the edge SDK", async () => {
-  const [runtime, interactions, sdk, pkg, css] = await Promise.all([
+test("The original website2 SDK router remains for reference, and the Theatre loads the edge SDK", async () => {
+  const [runtime, interactions, sdk, theatre, pkg, css] = await Promise.all([
     file("../runtime.js"),
     file("../src/systemya/interactions.ts"),
     file("../src/systemya/games-sdk.ts"),
+    file("../src/systemya/theatre.ts"),
     file("../package.json"),
-    file("../src/systemya/stomp.css"),
+    file("../src/systemya/theatre.css"),
   ]);
   assert.match(runtime, /from "\.\/sdk\/dist\/server\/router\.js"/);
   assert.match(runtime, /huRouter\.shouldUpgrade\(req\)/);
   assert.match(runtime, /huRouter\.upgrade\(req, socket, head\)/);
-  assert.match(interactions, /mountGamesSDK\(root\)/);
-  assert.match(sdk, /\/cdn\/index\.js/);
+  assert.match(interactions, /mountTheatre\(root\)/);
+  assert.match(sdk, /"\/cdn\/index\.js"/);
   for (const method of ["query", "getGame", "countPlay"])
-    assert.match(sdk, new RegExp(`(?:sdk|client)\\.${method}\\(`));
-  assert.match(sdk, /safeLocalPath\(game\.launchPath\)/);
-  assert.match(css, /systemya-sdk-catalog/);
+    assert.match(sdk, new RegExp(`sdk\\.${method}\\(`));
+  // website2's theatre queries: grouped drawers, paged categories, search.
+  assert.match(theatre, /groupBy: "category", limitPerGroup: GROUP_SIZE/);
+  assert.match(theatre, /category: \[list\.category\]/);
+  assert.match(theatre, /offset: \(list\.page - 1\) \* PAGE_SIZE/);
+  assert.match(theatre, /search: query, limit: SUGGESTIONS/);
+  // Stylesheets come from the layout, so every page links them. A stylesheet imported only by
+  // a client module is injected at runtime in dev and dropped by the router on the next swap.
+  const layout = await file("../src/layouts/SystemYALayout.astro");
+  assert.match(layout, /import "\.\.\/systemya\/theatre\.css";/);
+  assert.match(layout, /import "\.\.\/systemya\/proxy\.css";/);
+  const { readdir } = await import("node:fs/promises");
+  for (const name of await readdir(
+    new URL("../src/systemya/", import.meta.url),
+  ))
+    if (/\.(?:ts|js)$/.test(name))
+      assert.doesNotMatch(
+        await file(`../src/systemya/${name}`),
+        /^import\s+["'][^"']+\.css["']/m,
+        name,
+      );
+  assert.match(css, /\.theatre-drawer \.items-expand/);
+  // Launches use the SDK's signed asset and player paths, not website2's /hub/ page.
+  assert.match(sdk, /safeLocalPath\(game\.assetPath\)/);
+  assert.match(sdk, /safeLocalPath\(game\.playerPath\)/);
+  assert.doesNotMatch(sdk, /launchPath/);
+  assert.equal((theatre.match(/launchGame\(/g) ?? []).length, 1);
   const scripts = JSON.parse(pkg).scripts;
   assert.equal(scripts["predev"], "npm run prepare:stomp");
   assert.equal(scripts["prebuild"], "npm run prepare:stomp");

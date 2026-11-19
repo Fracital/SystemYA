@@ -6,21 +6,17 @@
  * 1. The sign-in starts first-party here (POST /api/auth/sign-in/social, or link-social, or
  *    GET /api/auth/lastfm/url): Fracital, behind the edge's /api/ proxy, puts its state cookie on
  *    this host and answers with the provider's URL, whose redirect_uri is fracit.al's callback.
- * 2. The provider's pages run in SystemYA's STomp view, so the provider sees an ordinary browser.
+ * 2. The provider's pages run in a STomp frame, so the provider sees an ordinary browser.
  * 3. A request rule stops the proxied browser at fracit.al's callback before it goes upstream, and
  *    the request event hands over the callback URL with the code and state.
  * 4. The same callback is replayed first-party on this host. Fracital checks the state cookie set in
  *    step 1, exchanges the code with the same fracit.al redirect_uri, and sets the session here.
  *
- * A cancelled view (its Back button) rejects with "... sign-in was cancelled".
+ * The provider's pages show full screen below the navbar, with no toolbar. Escape, or any click on
+ * the navbar, cancels; that rejects with "... sign-in was cancelled".
  */
 import type { RequestEvent, RequestRule } from "@sysce/stomp";
-import {
-  bootStomp,
-  closeService,
-  openStomp,
-  SERVICE_CLOSED,
-} from "../systemya/stomp";
+import { bootStomp } from "../systemya/stomp";
 import { authClient } from "./auth";
 
 const AUTH_HOST = "https://fracit.al";
@@ -34,9 +30,41 @@ const NAMES: Record<string, string> = {
   lastfm: "Last.fm",
 };
 
+/** A STomp frame over the page, from the navbar's bottom edge to the bottom of the viewport. */
+function signInView(title: string): {
+  iframe: HTMLIFrameElement;
+  remove(): void;
+} {
+  const nav = document.querySelector<HTMLElement>("#root > nav");
+  const top = Math.max(0, nav?.getBoundingClientRect().bottom ?? 0);
+  const iframe = document.createElement("iframe");
+  iframe.title = `Sign in with ${title}`;
+  iframe.id = "systemya-signin-frame";
+  Object.assign(iframe.style, {
+    position: "fixed",
+    top: `${top}px`,
+    left: "0",
+    width: "100%",
+    height: `calc(100dvh - ${top}px)`,
+    border: "0",
+    zIndex: "50",
+    background: "#fff",
+  });
+  document.body.append(iframe);
+  const overflow = document.documentElement.style.overflow;
+  document.documentElement.style.overflow = "hidden";
+  return {
+    iframe,
+    remove() {
+      iframe.remove();
+      document.documentElement.style.overflow = overflow;
+    },
+  };
+}
+
 /**
- * Shows `start` in the STomp view and resolves with the first proxied request URL under
- * `callback` (which never leaves the browser); rejects when the view is closed first.
+ * Shows `start` in a STomp frame and resolves with the first proxied request URL under `callback`
+ * (which never leaves the browser); rejects when the visitor cancels first.
  */
 async function catchCallback(
   start: string,
@@ -48,31 +76,46 @@ async function catchCallback(
     { match: { url: `${callback}*` }, action: { status: 204 } },
   ];
   await controller.setRules(rules);
+  const view = signInView(title);
+  const nav = document.querySelector<HTMLElement>("#root > nav");
   try {
     return await new Promise<URL>((resolve, reject) => {
       const done = (fn: () => void) => {
         controller.removeEventListener("request", onRequest);
-        window.removeEventListener(SERVICE_CLOSED, onClosed);
+        window.removeEventListener("keydown", onKey);
+        nav?.removeEventListener("click", onCancel, true);
+        document.removeEventListener("astro:before-preparation", onCancel);
         fn();
       };
       const onRequest = (event: Event) => {
         const url = (event as CustomEvent<RequestEvent>).detail?.url;
         if (!url?.startsWith(callback)) return;
-        done(() => {
-          closeService();
-          resolve(new URL(url));
-        });
+        done(() => resolve(new URL(url)));
       };
-      const onClosed = () =>
+      const onCancel = () =>
         done(() => reject(new Error(`${title} sign-in was cancelled`)));
+      const onKey = (event: KeyboardEvent) => {
+        if (event.key === "Escape") onCancel();
+      };
       controller.addEventListener("request", onRequest);
-      window.addEventListener(SERVICE_CLOSED, onClosed);
-      void openStomp(start).then(() => {
-        const heading = document.querySelector("#systemya-service-title");
-        if (heading) heading.textContent = `Sign in with ${title}`;
-      });
+      window.addEventListener("keydown", onKey);
+      nav?.addEventListener("click", onCancel, true);
+      document.addEventListener("astro:before-preparation", onCancel);
+      controller
+        .createFrame(view.iframe)
+        .go(start)
+        .catch((error: unknown) =>
+          done(() =>
+            reject(
+              new Error(
+                `${title} sign-in couldn't load: ${error instanceof Error ? error.message : String(error)}`,
+              ),
+            ),
+          ),
+        );
     });
   } finally {
+    view.remove();
     await controller.setRules([]).catch(() => undefined);
   }
 }

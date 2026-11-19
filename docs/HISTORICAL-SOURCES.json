@@ -65,11 +65,6 @@
       "path": "public/static/media/segoe-ui-700.c408ee083ec612e2efcf.woff2",
       "sha256": "d87d0a7a7fe2c36d1dc093bfe56e9b81b311988789dbd3b65abf811d551ef02f",
       "bytes": 29388
-    },
-    {
-      "path": "public/static/media/theatre.4cf739e3dd20f770bb30.webp",
-      "sha256": "5a525b5055dea581972a77ca29dc836d34fb2a8bc410b5c569360a0c74a33da9",
-      "bytes": 407838
     }
   ]
 }

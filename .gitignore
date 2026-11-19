@@ -36,6 +36,10 @@ public/assets/blacklist.txt
 public/assets/txt/
 # STomp runtime, copied from node_modules by prepare:stomp before every build
 public/vendor/st/
+public/vendor/rt/
+# The browser UI (vendor/powermouse's demo host) and this build's names, by the same step
+public/ui/
+src/systemya/stomp-build.json
 
 .github/agents/
 

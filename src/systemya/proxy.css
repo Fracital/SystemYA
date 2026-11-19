@@ -1,0 +1,5 @@
+/* The browser page: the UI's dark backdrop while its frame loads. Layout is shell.css's. Keyed
+   on the page's <main>, not on the route, so the page can be mounted under any address. */
+#root > main.systemya-app {
+  background: #000;
+}

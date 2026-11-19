@@ -2,28 +2,58 @@
 
 ## Games SDK
 
-The game catalog uses Holy Unblocker website2's SDK, version 0.0.5, from
-`sdk/`. In production the edge serves its browser bootstrap at `/cdn/index.js`
-and proxies `/cdn/` and `/v1/games/` to Holy Unblocker. The static build does
-not include the SDK.
+The Theatre (`/theatre.html`) is Holy Unblocker website2's theatre on the 2022
+page. In production the edge serves the SDK's browser bootstrap at
+`/cdn/index.js` and proxies `/cdn/` and `/v1/games/` to Holy Unblocker. The
+static build does not include the SDK. `sdk/` holds website2's SDK source,
+version 0.0.5, as reference and for the tests.
 
-`/theatre.html` keeps the 34 recovered 2022 cards from
-`src/systemya/snapshots/theatre.html` with their original sprite coordinates.
-`src/systemya/games-sdk.ts` loads `/cdn/index.js` and adds a "More games"
-section below them, which was not part of the 2022 site. It uses `HU.query`
-for search and pagination, `HU.getGame` to launch and `HU.countPlay` after a
-launch. Thumbnails use the SDK's opaque same-origin image paths.
+- `src/systemya/games-sdk.ts` loads `/cdn/index.js` once per document (one
+  retry), maps website2's sort names to API parameters and launches games.
+- `src/systemya/theatre.ts` and `theatre.css` draw the Theatre from
+  website2's `hub/index.astro`, `TheatreCategory.astro`,
+  `TheatreSearchBar.astro`, `renderTheatre.ts` and `searchResult.ts`.
 
-Launches open in SystemYA's in-page frame:
+Views are URLs, so the browser's back and forward buttons work:
+
+| URL                             | View                                                  |
+| ------------------------------- | ----------------------------------------------------- |
+| `/theatre.html`                 | One 2022 drawer per category, 15 games each, sorted   |
+| `/theatre.html?category=action` | Every game in a category, 30 per page, with six sorts |
+| `/theatre.html?q=mario`         | Search results, 30 per page                           |
+| `&sort=nameASC`, `&page=2`      | Sort (website2's names) and page                      |
+
+The SDK calls are the ones website2 makes: `HU.query` with `groupBy:
+"category"` and `limitPerGroup` for the drawers, with `category`, `offset`,
+`limit`, `sort` and `order` for a category, with `search` for search results
+and suggestions, `HU.getGame` before a launch and `HU.countPlay` once per game
+per browser. Every query passes `type` with the SDK's types except `flash`.
+Thumbnails use each entry's opaque `imagePath`.
+
+A drawer shows one row. Its round button opens the drawer in place, and stays
+at the bottom of the screen while the drawer is open. If the drawer's heading
+has scrolled above the screen when it opens or closes, the page scrolls back to
+it. The 2022 page scrolls `#root` (`position: fixed; overflow: auto`), not the
+window.
+
+`launchGame` in `games-sdk.ts` is the one place a game opens, following
+website2's `TheatrePlayer.astro`:
 
 - `proxy` games open their source URL in STomp, over Fracital's public relay
   `wss://holywisp.fracit.al/`.
-- `flash` games open `/flash#<encrypted URL>`, website2's Ruffle page. That
-  page is in `legacy/website2/pages/` and is not part of the static build.
-- Other games open the SDK's local `launchPath`.
+- `embed` games open the SDK's signed `assetPath` in SystemYA's frame.
+- `emulator.*` games open the SDK's `playerPath` (webretro) with the
+  `assetPath` as the ROM.
+- `flash` games need website2's Ruffle page at `/flash`, which the static
+  build does not have, so the catalog leaves them out.
 
+The `launchPath` (`/hub/?v=...`) is a website2 page and is not used here.
 The browser talks to the SDK's opaque `/cdn/` routes only. Do not add browser
 requests to `/v1/games/` or show raw game source URLs in the UI.
+
+The bootstrap only exists behind the edge. `npm run dev` and `npm run preview`
+have no `/cdn/`, so the Theatre shows "The game library is unavailable right
+now." with a Try again button there.
 
 ## Holt
 

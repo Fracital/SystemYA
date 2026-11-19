@@ -1,10 +1,13 @@
+// First, so it sees the body as it was served.
+import "./router";
 import { mountHistoricalMedia } from "./historical-media";
-import { openStomp, openEmbed, closeService, reloadService } from "./stomp";
-import { mountGamesSDK } from "./games-sdk";
+import { mountProxy, openProxy } from "./proxy";
+import { mountTheatre } from "./theatre";
 import { mountAccount, startAccountSession } from "./account";
 import { mountBookmark } from "./bookmark";
 import { mountChatLinks } from "./chat-links";
-// Astro ClientRouter preserves same-document navigation between the recovered pages.
+// Astro ClientRouter preserves same-document navigation between the recovered pages, all of them
+// served from "/" by number (routes.ts).
 // Each page-load rebinds the captured 2022 markup without injecting a new interface.
 
 function targetUrl(value: string): string {
@@ -26,40 +29,14 @@ function initSystemYA(): void {
   } catch {
     root.dataset.theme = "light";
   }
-  // nginx serves /index.html for unknown routes; draw our own 404 in the SPA.
-  const knownPaths = new Set([
-    "/",
-    "/index.html",
-    "/theatre.html",
-    "/support.html",
-    "/contact.html",
-    "/privacy.html",
-    "/chat",
-    "/chat/",
-    "/chat.html",
-    "/account",
-    "/account/",
-    "/bookmark.html",
-    "/404.html",
-  ]);
-  if (!knownPaths.has(window.location.pathname)) {
-    const main = root.querySelector("main");
-    if (main) {
-      main.replaceChildren();
-      const heading = document.createElement("h1");
-      heading.textContent = "Page not found";
-      const home = document.createElement("a");
-      home.href = "/";
-      home.textContent = "Home";
-      main.append(heading, home);
-    }
-    root.dataset.page = "not-found";
-  }
+  // Which page #root shows (and the not-found page for an address that names none) is the
+  // route book's call (routes.ts, router.ts).
   mountHistoricalMedia(root);
-  mountGamesSDK(root);
+  mountTheatre(root);
   mountAccount(root);
   mountBookmark(root);
   mountChatLinks(root);
+  if (root.dataset.page === "app") mountProxy(root);
   startAccountSession();
   nav.dataset.expanded = "0";
   nav.dataset.search = "0";
@@ -104,82 +81,10 @@ function initSystemYA(): void {
       event.preventDefault();
       const input = form.querySelector<HTMLInputElement>("input");
       if (!input?.value.trim()) return;
-      const url = targetUrl(input.value);
-      void openStomp(url);
+      nav.dataset.search = "0";
+      openProxy(targetUrl(input.value));
     });
   }
-
-  for (const card of root.querySelectorAll<HTMLElement>(
-    ".items > .item[data-target]",
-  )) {
-    const openCard = () => {
-      const target = card.dataset.target;
-      const src = card.dataset.src;
-      if (!target || !src) return;
-      if (target === "proxy") void openStomp(src);
-      else if (target === "embed")
-        openEmbed(src, card.dataset.title ?? "Theatre");
-      else if (target === "webretro") {
-        const embedded = `/assets/theatre/WebRetro/?rom=${encodeURIComponent(src)}&core=autodetect`;
-        openEmbed(embedded, card.dataset.title ?? "Theatre");
-      }
-    };
-    card.addEventListener("click", openCard);
-    card.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        openCard();
-      }
-    });
-  }
-
-  for (const section of root.querySelectorAll<HTMLElement>("main > section")) {
-    const items = section.querySelector<HTMLElement>(".items");
-    const expandButton = section.querySelector<HTMLElement>(".items-expand");
-    if (!items || !expandButton) continue;
-    const measure = () => {
-      if (!section.isConnected) return;
-      const prev = section.dataset.expanded;
-      section.dataset.expanded = "0";
-      section.dataset.overflowing =
-        items.scrollHeight > items.clientHeight + 1 ? "1" : "0";
-      section.dataset.expanded = prev ?? "0";
-    };
-    expandButton.addEventListener("click", () => {
-      section.dataset.expanded = section.dataset.expanded === "1" ? "0" : "1";
-      expandButton.textContent =
-        section.dataset.expanded === "1" ? "expand_less" : "expand_more";
-    });
-    expandButton.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        expandButton.click();
-      }
-    });
-    window.addEventListener("resize", measure);
-    requestAnimationFrame(measure);
-    document.addEventListener(
-      "astro:before-swap",
-      () => window.removeEventListener("resize", measure),
-      { once: true },
-    );
-  }
-
-  document
-    .querySelector("#systemya-close-service")
-    ?.addEventListener("click", closeService);
-  document
-    .querySelector("#systemya-reload-service")
-    ?.addEventListener("click", () => {
-      void reloadService();
-    });
-  document
-    .querySelector("#systemya-fullscreen-service")
-    ?.addEventListener("click", () => {
-      void document
-        .querySelector<HTMLIFrameElement>("#systemya-service-frame")
-        ?.requestFullscreen();
-    });
 
   const heading = root.querySelector<HTMLElement>("[data-typewriter]");
   if (

@@ -1,18 +1,35 @@
 ---
 import { ClientRouter } from "astro:transitions";
-import "../systemya/stomp.css";
+// Every page links every stylesheet. A stylesheet imported only from a client module is injected
+// at runtime in dev, and the router drops it on the next page swap.
 import "../systemya/account.css";
+import "../systemya/shell.css";
+import "../systemya/theatre.css";
+import "../systemya/proxy.css";
 import { getSystemYASnapshot, type SystemYAPage } from "../systemya/snapshot";
 import { obfuscationRules } from "../systemya/obfuscate";
+import { bookLinks, entryScript } from "../systemya/routes";
+import { pageTemplates } from "../systemya/route-pages";
 
 interface Props {
   page: SystemYAPage;
   title?: string;
+  // Full-screen pages (chat, proxy) set #root[data-fullscreen="1"]: the navbar stays at the top,
+  // the footer is hidden, the page does not scroll, and #root > main fills the rest of the
+  // viewport. See src/systemya/shell.css for the contract.
+  fullscreen?: boolean;
 }
 
-const { page, title = "SystemYA" } = Astro.props;
-const markup = getSystemYASnapshot(page);
+const { page, title = "SystemYA", fullscreen = false } = Astro.props;
+// Links in the route book's form (/?1), never the page's own path.
+const markup = bookLinks(getSystemYASnapshot(page));
 const rules = obfuscationRules();
+// "/" (index.html) serves every number, so it carries every page: the entry script shows the
+// one the address names and the router (src/systemya/router.ts) navigates without fetching. The
+// old paths' files (/theatre.html, /app/) carry only their own page; leaving one fetches "/".
+// See src/systemya/routes.ts.
+const templates = page === "index" ? pageTemplates() : [];
+const entry = entryScript();
 ---
 
 <!doctype html>
@@ -50,9 +67,22 @@ const rules = obfuscationRules();
       id="root"
       data-page={page === "index" ? "home" : page}
       data-theme="light"
-      data-fullscreen="0"
+      data-fullscreen={fullscreen ? "1" : "0"}
       set:html={markup}
     />
+    <div id="systemya-pages" hidden>
+      {
+        templates.map((t) => (
+          <template
+            data-page={t.page}
+            data-title={t.title}
+            data-fullscreen={t.fullscreen ? "1" : "0"}
+            set:html={t.markup}
+          />
+        ))
+      }
+    </div>
+    <script is:inline set:html={entry} />
     <script is:inline data-astro-rerun data-rules={JSON.stringify(rules)}>
       // 2022's style component: insert the obfuscation rules into the app's <style> through CSSOM.
       {
@@ -64,16 +94,6 @@ const rules = obfuscationRules();
         if (sheet && !sheet.cssRules.length) for (const rule of rules) sheet.insertRule(rule, sheet.cssRules.length);
       }
     </script>
-    <section id="systemya-service" hidden aria-label="SystemYA STomp proxy">
-      <div class="service-toolbar">
-        <button type="button" id="systemya-close-service" aria-label="Close proxy">Back</button>
-        <span class="service-title" id="systemya-service-title">SystemYA</span>
-        <span class="service-status" id="systemya-service-status" role="status"></span>
-        <button type="button" id="systemya-reload-service" aria-label="Reload proxied page">Reload</button>
-        <button type="button" id="systemya-fullscreen-service" aria-label="Fullscreen">Fullscreen</button>
-      </div>
-      <iframe id="systemya-service-frame" title="SystemYA STomp browser"></iframe>
-    </section>
     <script>
       import "../systemya/interactions.ts";
     </script>

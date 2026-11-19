@@ -1,11 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile, mkdir, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { readFile } from "node:fs/promises";
 import http from "node:http";
 import { once } from "node:events";
-import { prepareStomp, stompFiles } from "../scripts/prepare-stomp.mjs";
 import {
   handleHoltRequest,
   handleHoltUpgrade,
@@ -14,29 +11,6 @@ import {
 
 const root = new URL("../", import.meta.url);
 const source = async (name) => readFile(new URL(name, root), "utf8");
-
-test("STomp version and Fracital runtime names remain aligned", async () => {
-  const packageJson = JSON.parse(await source("package.json"));
-  assert.equal(
-    packageJson.dependencies["@sysce/stomp"],
-    "4.2.0-nightly.202611101458.g70c72a0",
-  );
-  assert.match(
-    packageJson.dependencies["@mercuryworkshop/epoxy-transport"],
-    /Fracital\/EpoxyTransport/,
-  );
-  assert.deepEqual(
-    stompFiles.map((x) => x[1]),
-    ["sw.js", "doc.js", "wk.js", "tw.js", "rw.js", "api.js"],
-  );
-  const engine = await source("src/systemya/stomp.ts");
-  assert.match(engine, /StompController|Controller.register/);
-  assert.match(engine, /wss:\/\/holywisp\.fracit\.al\//);
-  assert.match(engine, /controller.createFrame\(frame\)/);
-  assert.match(engine, /currentFrame.go\(url.href\)/);
-  // The request log must be on, or the OAuth callback is never reported.
-  assert.match(engine, /onRequest:/);
-});
 
 test("OAuth and Last.fm run through STomp and replay fracit.al's callback here", async () => {
   const oauth = await source("src/fracital/stomp-oauth.ts");
@@ -50,65 +24,22 @@ test("OAuth and Last.fm run through STomp and replay fracit.al's callback here",
   assert.match(auth, /lastfmThroughStomp\(mode\)/);
 });
 
-test("STomp build tool copies upstream assets and keeps their hashes", async () => {
-  const rootDir = await mkdtemp(join(tmpdir(), "systemya-stomp-test-"));
-  try {
-    const input = join(rootDir, "package");
-    const dest = join(rootDir, "public/vendor/st");
-    await mkdir(input);
-    for (const [filename] of stompFiles)
-      await writeFile(
-        join(input, filename),
-        `// fixture ${filename} `.repeat(4),
-      );
-    const epoxy = join(rootDir, "index.mjs");
-    await writeFile(epoxy, "// fixture epoxy transport ".repeat(4));
-    const manifest = await prepareStomp({
-      source: input,
-      epoxy,
-      destination: dest,
-    });
-    assert.equal(manifest.files.length, 7);
-    const api = await readFile(join(dest, "api.js"), "utf8");
-    assert.match(api, /controller/);
-    assert.equal(
-      JSON.parse(await readFile(join(dest, "manifest.json"))).files.length,
-      7,
-    );
-  } finally {
-    await rm(rootDir, { recursive: true, force: true });
-  }
-});
-
-test("Theatre content is taken from the May 2022 Webcrack catalog, not scrambled HTML", async () => {
-  const cat = JSON.parse(
-    await source("src/systemya/theatre-catalog-2022.json"),
-  );
-  assert.equal(cat.categories.length, 7);
-  assert.equal(cat.categories.flatMap((c) => c.items).length, 34);
-  assert.ok(
-    cat.categories.some((c) =>
-      c.items.some((i) => i.name === "Sonic The Hedgehog"),
-    ),
-  );
-  assert.ok(
-    cat.categories.some((c) => c.items.some((i) => i.name === "Duck Life 4")),
-  );
+test("Theatre is the Games SDK catalog; the 2022 cards and their sprite are gone", async () => {
   const saved = await source("src/systemya/snapshots/theatre.html");
-  assert.doesNotMatch(saved, /<s class="q">/);
-  assert.match(saved, /Sonic The Hedgehog/);
   assert.match(
     saved,
-    /Pokemon Red =&gt; Pokemon Fire Red|Pokemon Red => Pokemon Fire Red/,
+    /<main class="systemya-theatre" id="systemya-theatre" aria-label="Theatre"><\/main>/,
   );
-  assert.equal(
-    (saved.match(/data-target="(?:proxy|embed|webretro)"/g) || []).length,
-    34,
-  );
+  assert.doesNotMatch(saved, /data-target=|class="front"|Pokemon Red =&gt;/);
   assert.match(saved, /href="\/chat"/);
+  const { existsSync } = await import("node:fs");
+  assert.equal(
+    existsSync(new URL("src/systemya/theatre-catalog-2022.json", root)),
+    false,
+  );
   const events = await source("src/systemya/interactions.ts");
-  assert.match(events, /\.items > \.item\[data-target\]/);
-  assert.match(events, /data(?:set)?\.target|card\.dataset\.target/);
+  assert.match(events, /mountTheatre\(root\)/);
+  assert.doesNotMatch(events, /\.items > \.item\[data-target\]/);
 });
 
 test("The chat route is a fixed, same-origin Holt frame, not a visitor URL popup", async () => {

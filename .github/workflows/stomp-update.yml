@@ -1,0 +1,304 @@
+# Keep STomp (@sysce/stomp) and the powerMouse UI (the vendor/powermouse submodule) current.
+#
+# powerMouse (Fracital/powerMouse) publishes master as @sysce/stomp@nightly at 07:17 UTC, and on a
+# manual run, and only a commit whose CI passed (its nightly.yml). Twice a day this workflow looks
+# at the nightly tag and moves both to it: the package to that version, and the submodule to the
+# commit the version was built from (the package's gitHead), so the UI and the runtime it drives
+# always come from one tested commit. The package only moves to a version published after the
+# pinned one, and the submodule only forward along master.
+#
+# The check job holds no write token. It bumps, then runs what CI and the deploy run (npm ci,
+# npm run verify, npm run build, verify-static-dist.mjs, the deploy contract) and
+# scripts/stomp-smoke.mjs, which starts STomp from dist/ in headless Chrome and opens a page
+# through the public relay (nothing else in the build starts STomp). When it passes, the publish
+# job commits the change as github-actions[bot] straight to main and starts deploy.yml (a push
+# made with GITHUB_TOKEN starts no workflow, a workflow_dispatch does). When main moved during the
+# check, nothing is pushed and the next run tests again on the new main. When the check fails, the
+# report job opens an issue, or comments on the open one, and main is not touched. A later update
+# that passes closes the issue.
+
+name: STomp update
+
+on:
+  schedule:
+    - cron: "53 8 * * *"
+    - cron: "53 20 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "A @sysce/stomp version to try instead of the nightly tag (empty: the nightly tag)"
+        required: false
+        default: ""
+
+concurrency:
+  group: stomp-update
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  ISSUE_TITLE: STomp update needs attention
+  SUBMODULE: vendor/powermouse
+  UPSTREAM: Fracital/powerMouse
+  PLAYWRIGHT_CORE_VERSION: 1.65.0
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    outputs:
+      update: ${{ steps.want.outputs.update }}
+      package: ${{ steps.want.outputs.package }}
+      submodule: ${{ steps.want.outputs.submodule }}
+      current: ${{ steps.want.outputs.current }}
+      version: ${{ steps.want.outputs.version }}
+      commit: ${{ steps.want.outputs.commit }}
+      pinned: ${{ steps.want.outputs.pinned }}
+      base: ${{ steps.want.outputs.base }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          submodules: true
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Newest nightly
+        id: want
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED: ${{ inputs.version }}
+        run: |
+          current=$(node -p 'require("./package.json").dependencies["@sysce/stomp"]')
+          version=${REQUESTED:-$(npm view @sysce/stomp@nightly version)}
+          commit=$(npm view "@sysce/stomp@$version" gitHead)
+          pinned=$(git ls-tree HEAD "$SUBMODULE" | awk '$2 == "commit" { print $3 }')
+          package=false
+          move_sub=false
+          if [[ $version != "$current" ]]; then
+            package=true
+            # never go back: the candidate must have been published after the pin
+            # (a manual run may name any version)
+            if [[ -z $REQUESTED ]]; then
+              npm view @sysce/stomp time --json >"$RUNNER_TEMP/times.json"
+              if ! node -e '
+                const t = require(process.argv[1]);
+                process.exit(Date.parse(t[process.argv[3]]) > Date.parse(t[process.argv[2]] ?? 0) ? 0 : 1);
+              ' "$RUNNER_TEMP/times.json" "$current" "$version"; then
+                echo "::warning::the nightly tag names $version, published before the pinned $current; not updating"
+                package=false
+              fi
+            fi
+          fi
+          if [[ -n $pinned && -n $commit && $pinned != "$commit" ]]; then
+            # forward only: the nightly's commit must be ahead of the pinned one on master
+            status=$(gh api "repos/$UPSTREAM/compare/$pinned...$commit" --jq .status)
+            if [[ $status == ahead || -n $REQUESTED ]]; then
+              move_sub=true
+            else
+              echo "::notice::$SUBMODULE stays at $pinned: the nightly's $commit is not ahead of it ($status)"
+            fi
+          fi
+          {
+            echo "current=$current"
+            echo "version=$version"
+            echo "commit=$commit"
+            echo "pinned=$pinned"
+            echo "package=$package"
+            echo "submodule=$move_sub"
+            echo "base=$(git rev-parse HEAD)"
+          } >>"$GITHUB_OUTPUT"
+          if [[ $package == false && $move_sub == false ]]; then
+            echo "::notice::@sysce/stomp $current and $SUBMODULE ${pinned:-(none)} are current"
+            echo update=false >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "::notice::@sysce/stomp $current -> $version ($package), $SUBMODULE ${pinned:-(none)} -> $commit ($move_sub)"
+          echo update=true >>"$GITHUB_OUTPUT"
+
+      - name: Bump
+        if: steps.want.outputs.update == 'true'
+        env:
+          PACKAGE: ${{ steps.want.outputs.package }}
+          MOVE_SUBMODULE: ${{ steps.want.outputs.submodule }}
+          VERSION: ${{ steps.want.outputs.version }}
+          COMMIT: ${{ steps.want.outputs.commit }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/bump"
+          if [[ $PACKAGE == true ]]; then
+            npm install --save-exact "@sysce/stomp@$VERSION"
+            cp package.json package-lock.json "$RUNNER_TEMP/bump/"
+          fi
+          if [[ $MOVE_SUBMODULE == true ]]; then
+            git -C "$SUBMODULE" fetch --depth 1 origin "$COMMIT"
+            git -C "$SUBMODULE" checkout -q --detach "$COMMIT"
+            echo "$COMMIT" >"$RUNNER_TEMP/bump/submodule"
+          fi
+          changed=$(git status --porcelain | awk '{ print $2 }' | sort | tr '\n' ' ')
+          for path in $changed; do
+            case $path in
+              package.json | package-lock.json | "$SUBMODULE") ;;
+              *) echo "::error::the bump changed $path"; exit 1 ;;
+            esac
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: steps.want.outputs.update == 'true'
+        with:
+          name: stomp-bump
+          path: ${{ runner.temp }}/bump/
+          retention-days: 7
+          if-no-files-found: error
+
+      # what ci.yml and deploy.yml run
+      - name: Install dependencies
+        if: steps.want.outputs.update == 'true'
+        run: npm ci
+
+      - name: Verify source and history
+        if: steps.want.outputs.update == 'true'
+        run: npm run verify
+
+      - name: Build the static Astro SPA
+        if: steps.want.outputs.update == 'true'
+        run: npm run build
+
+      - name: Check deploy contract
+        if: steps.want.outputs.update == 'true'
+        run: |
+          test -f dist/index.html
+          node scripts/verify-static-dist.mjs
+          ! find dist -maxdepth 1 \( -name room -o -name v1 -o -name cdn -o -name api \) | grep -q .
+
+      - name: STomp opens a page from dist/
+        if: steps.want.outputs.update == 'true'
+        run: |
+          npm install --prefix "$RUNNER_TEMP/pw" --no-save --no-package-lock "playwright-core@$PLAYWRIGHT_CORE_VERSION"
+          PLAYWRIGHT_CORE="$RUNNER_TEMP/pw/node_modules/playwright-core/index.mjs" node scripts/stomp-smoke.mjs
+
+  publish:
+    needs: check
+    if: needs.check.outputs.update == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      CURRENT: ${{ needs.check.outputs.current }}
+      VERSION: ${{ needs.check.outputs.version }}
+      COMMIT: ${{ needs.check.outputs.commit }}
+      PINNED: ${{ needs.check.outputs.pinned }}
+      BASE: ${{ needs.check.outputs.base }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.check.outputs.base }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: stomp-bump
+          path: ${{ runner.temp }}/bump/
+
+      - name: Commit and push to main
+        id: push
+        run: |
+          subject=()
+          detail=()
+          if [[ -f $RUNNER_TEMP/bump/package.json ]]; then
+            cp "$RUNNER_TEMP/bump/package.json" "$RUNNER_TEMP/bump/package-lock.json" .
+            git add package.json package-lock.json
+            subject+=("STomp to $VERSION")
+            detail+=("@sysce/stomp $CURRENT -> $VERSION.")
+          fi
+          if [[ -f $RUNNER_TEMP/bump/submodule ]]; then
+            sha=$(cat "$RUNNER_TEMP/bump/submodule")
+            # the gitlink alone; the submodule's files are not needed to move it
+            git update-index --cacheinfo "160000,$sha,$SUBMODULE"
+            subject+=("the powerMouse UI to ${sha:0:7}")
+            detail+=("$SUBMODULE $PINNED -> $sha.")
+          fi
+          changed=$(git diff --cached --name-only | sort | tr '\n' ' ')
+          for path in $changed; do
+            case $path in
+              package.json | package-lock.json | "$SUBMODULE") ;;
+              *) echo "::error::unexpected change: $path"; exit 1 ;;
+            esac
+          done
+          if [[ -z $changed ]]; then
+            echo "::error::nothing to commit"
+            exit 1
+          fi
+          git fetch --no-tags origin main
+          if [[ $(git rev-parse FETCH_HEAD) != "$BASE" ]]; then
+            echo "::warning::main moved while the update was checked; nothing pushed, the next run checks again"
+            echo pushed=false >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if (( ${#subject[@]} == 2 )); then title="Update ${subject[0]} and ${subject[1]}"; else title="Update ${subject[0]}"; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q --no-verify -m "$title" -m "${detail[*]} Built from $UPSTREAM@$COMMIT."
+          git push origin HEAD:main
+          echo pushed=true >>"$GITHUB_OUTPUT"
+          echo "::notice::pushed $(git rev-parse HEAD) to main"
+
+      - name: Deploy
+        if: steps.push.outputs.pushed == 'true'
+        run: gh workflow run deploy.yml --ref main
+
+      - name: Close the failure issue
+        if: steps.push.outputs.pushed == 'true'
+        run: |
+          n=$(gh issue list --state open --author app/github-actions --json number,title \
+            --jq 'map(select(.title == env.ISSUE_TITLE))[0].number // empty')
+          if [[ -n $n ]]; then
+            gh issue close "$n" --comment "Updated to \`$VERSION\` ($UPSTREAM@$COMMIT) in $(git rev-parse HEAD); deploy started."
+          fi
+
+  report:
+    needs: [check, publish]
+    if: always() && needs.check.outputs.update == 'true' && (needs.check.result == 'failure' || needs.publish.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      CURRENT: ${{ needs.check.outputs.current }}
+      VERSION: ${{ needs.check.outputs.version }}
+      COMMIT: ${{ needs.check.outputs.commit }}
+      PINNED: ${{ needs.check.outputs.pinned }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Open or update the issue
+        run: |
+          # shellcheck disable=SC2016 # the single-quoted $ are jq's
+          steps=$(gh run view "$GITHUB_RUN_ID" --json jobs \
+            --jq '[.jobs[] | .name as $j | .steps[] | select(.conclusion == "failure") | "\($j): \(.name)"] | join(", ")')
+          marker="<!-- stomp-update-failed: $VERSION $COMMIT -->"
+          body=$(printf '%s\n\n%s\n\n%s\n\n%s\n' \
+            "Updating to \`@sysce/stomp@$VERSION\` and $SUBMODULE $COMMIT ($UPSTREAM) failed, so main still has \`$CURRENT\` and ${PINNED:-no submodule}." \
+            "Failed: ${steps:-see the run}. Run: $RUN_URL" \
+            "To reproduce: \`npm install @sysce/stomp@$VERSION --save-exact\`, \`git -C $SUBMODULE fetch origin $COMMIT && git -C $SUBMODULE checkout $COMMIT\`, then \`npm run verify\`, \`npm run build\` and \`node scripts/stomp-smoke.mjs\`." \
+            "$marker")
+          n=$(gh issue list --state open --author app/github-actions --json number,title \
+            --jq 'map(select(.title == env.ISSUE_TITLE))[0].number // empty')
+          if [[ -z $n ]]; then
+            gh issue create --title "$ISSUE_TITLE" --body "$body"
+          elif ! gh issue view "$n" --json body,comments --jq '[.body, .comments[].body] | join("\n")' | grep -qF "$marker"; then
+            gh issue comment "$n" --body "$body"
+          else
+            echo "issue #$n already reports $VERSION"
+          fi

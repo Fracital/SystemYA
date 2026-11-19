@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve, sep } from "node:path";
+import { checkNeutralDist } from "./check-neutral-dist.mjs";
 
 const dir = resolve(process.argv[2] ?? "dist");
 if (!existsSync(dir) || !statSync(dir).isDirectory()) {
@@ -52,6 +53,8 @@ const walk = (path) => {
   }
 };
 walk(dir);
+const neutral = checkNeutralDist(dir);
+if (neutral.length) throw new Error(`Not neutral:\n${neutral.join("\n")}`);
 console.log(
   `Static output verified: ${dir}. Edge-reserved routes and secrets excluded.`,
 );

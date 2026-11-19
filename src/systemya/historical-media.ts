@@ -4,7 +4,6 @@ const capture =
 const assets = {
   light: "light.2d95225a7bb6ff1db853.svg",
   dark: "dark.8cbd0429f3449df8c19c.svg",
-  theatre: "theatre.4cf739e3dd20f770bb30.webp",
 } as const;
 
 type Asset = keyof typeof assets;
@@ -69,13 +68,4 @@ export function mountHistoricalMedia(root: HTMLElement): void {
     updateGrid(root, light, dark);
     root.dataset.gridSource = l && d ? "historical" : "fallback";
   });
-  if (root.dataset.page === "theatre") {
-    void getImage("theatre").then((src) => {
-      if (!src || !root.isConnected) return;
-      root.querySelectorAll<HTMLElement>(".front").forEach((front) => {
-        front.style.backgroundImage = `url("${src}")`;
-      });
-      root.dataset.theatreSource = "historical";
-    });
-  }
 }

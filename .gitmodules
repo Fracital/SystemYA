@@ -1,0 +1,5 @@
+[submodule "vendor/powermouse"]
+	path = vendor/powermouse
+	url = https://github.com/Fracital/powerMouse.git
+	branch = master
+	shallow = true

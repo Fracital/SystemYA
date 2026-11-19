@@ -1,0 +1,6 @@
+{
+  "directory": "/vendor/rt/",
+  "ui": "/ui/",
+  "wisp": "wss://holywisp.fracit.al/",
+  "repo": "Fracital/powerMouse"
+}

@@ -31,12 +31,23 @@ test("both historical grid references are preserved", () => {
   assert.match(css, /data-page=home\]\{background-image:var\(--grid\)/);
   assert.match(runtime, /getImage\("light"\)/);
   assert.match(runtime, /getImage\("dark"\)/);
-  assert.match(runtime, /getImage\("theatre"\)/);
+  // The Theatre uses the Games SDK's thumbnails; the 2022 sprite is no longer loaded.
+  assert.doesNotMatch(runtime, /theatre\.4cf739e3dd20f770bb30|\.front/);
+  assert.equal(
+    existsSync(path("public/static/media/theatre.4cf739e3dd20f770bb30.webp")),
+    false,
+  );
 });
 test("2022 media are present with exact hashes from the PC recovery", () => {
   assert.equal(manifest.assets.length, 12);
-  const recovered = manifest.assets.filter((a) => a.verified_original_bytes);
-  assert.equal(recovered.length, 6);
+  const verified = manifest.assets.filter((a) => a.verified_original_bytes);
+  assert.equal(verified.length, 6);
+  // The Theatre sprite keeps its checksum record but left the build.
+  const sprite = verified.find((a) => a.role === "sprite");
+  assert.equal(sprite.local_path, null);
+  assert.match(sprite.sha256, /^[0-9a-f]{64}$/);
+  const recovered = verified.filter((a) => a.local_path);
+  assert.equal(recovered.length, 5);
   for (const asset of recovered) {
     assert.ok(existsSync(path(asset.local_path)), `${asset.file} missing`);
     const bytes = readFileSync(path(asset.local_path));

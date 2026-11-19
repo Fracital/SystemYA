@@ -50,16 +50,19 @@ test("snapshot obfuscation uses the frozen 2022 class draw, one real letter per 
     }
   }
   const support = read("src/systemya/snapshots/support.html").match(block);
+  // the navbar's browser link comes first
   assert.deepEqual(support.map(reveal), [
+    "Proxy",
     "SystemYA",
     "proxy",
     "proxy",
     "proxy",
     "proxy",
   ]);
-  assert.notEqual(textContent(support[1]), "proxy");
+  assert.notEqual(textContent(support[2]), "proxy");
   const contact = read("src/systemya/snapshots/contact.html").match(block);
   assert.deepEqual(contact.map(reveal), [
+    "Proxy",
     "support@sys32.dev",
     "Discord",
     "https://discord.gg/rXFjfYt3ae",

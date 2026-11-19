@@ -7,25 +7,92 @@ outside this repository.
 
 ## Routes
 
-Astro builds `src/pages/<name>.astro` with `build.format: "preserve"`, so each
-page becomes `<name>.html`. `chat/` and `account/` are folders
-(`chat/index.astro`, `account/index.astro`) so that `/chat` and `/account`
-resolve.
+Every page is a number on `/`, kept in the route book,
+`src/systemya/routes.ts`. No address names a page.
 
-| URL                                                                                  | Served by                                                                                          |
-| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `/`                                                                                  | `index.html`                                                                                       |
-| `/theatre.html`, `/support.html`, `/contact.html`, `/privacy.html`, `/bookmark.html` | Static pages                                                                                       |
-| `/chat`                                                                              | Static page that embeds `/room/` in an iframe                                                      |
-| `/account/`                                                                          | Static page for Fracital Accounts                                                                  |
-| `/room/`                                                                             | Edge proxy to Holt, platform `systemya`, including realtime WebSockets. The edge adds the license. |
-| `/v1/games/`                                                                         | Edge proxy to Holy Unblocker's games catalog API                                                   |
-| `/cdn/`                                                                              | Edge proxy to Holy Unblocker's SDK and game CDN                                                    |
-| `/api/`                                                                              | Edge proxy to the Fracital server (Fracital Accounts)                                              |
+| Address | Page                                                               |
+| ------- | ------------------------------------------------------------------ |
+| `/`     | Home                                                               |
+| `/?1`   | Theatre (`/?1&category=action&sort=nameASC&page=2`, `/?1&q=mario`) |
+| `/?2`   | Browser page (`/?2#<fragment>`, see "Browser page")                |
+| `/?3`   | Chat, embedding `/room/` in an iframe                              |
+| `/?4`   | Support                                                            |
+| `/?5`   | Contact                                                            |
+| `/?6`   | Privacy                                                            |
+| `/?7`   | Account (Fracital Accounts)                                        |
+| `/?8`   | Insta-Proxy (the 2022 bookmark page)                               |
+
+Extra state follows the number with `&`, and a fragment stays a fragment. An
+unknown or retired number shows the not-found page.
+
+How a page is served:
+
+- The edge serves `index.html` for `/` and every `/?N`. `index.html` carries
+  every page of the book as a `<template>` (`SystemYALayout.astro`, from
+  `src/systemya/route-pages.ts`). A small inline script, built from
+  `routes.ts`, puts the page the address names into `#root` while the page
+  parses, so there is no flash of the home page.
+- In-site navigation goes through Astro's `ClientRouter`.
+  `src/systemya/router.ts` builds the next document from the templates instead
+  of fetching it, so history, scrolling, Back and Forward and the
+  `astro:page-load` events work as before and nothing is requested. All CSS
+  and page scripts are in the shared layout bundle, so every page renders the
+  same from any entry.
+- Links in the 2022 snapshots keep their old paths in `src/systemya/snapshots/`.
+  `bookLinks()` rewrites them at build time, so the site shows and follows
+  `/?1`, never `/theatre.html`. Code builds addresses with
+  `routeHref(page, query)`; the browser page's is `routeHref("app")`
+  (`APP_PATH` in `src/systemya/proxy.ts`).
+
+The old paths still work. `/theatre.html`, `/support.html`, `/contact.html`,
+`/privacy.html` and `/bookmark.html` are built, and so are the `account/`,
+`chat/` and `app/` folders (`account/index.astro` and so on), so that direct
+links and email links keep loading. Each carries only its own page. On load
+the address becomes the page's number with its query and fragment kept
+(`/theatre.html?category=action` becomes `/?1&category=action`,
+`/app/#x` becomes `/?2#x`). The first navigation from one of these fetches the
+next number from the edge (which answers with `index.html`); after that the
+templates are local. Extensionless spellings (`/theatre`, `/privacy`) and
+`/chat.html` reach `index.html` through the edge's fallback and resolve the
+same way. Nothing on the site links to an old path.
+
+Email and redirect links come back to the old paths and keep their
+parameters: Fracital's reset link `/account/?reset=1&token=...` becomes
+`/?7&reset=1&token=...`, and `/account/?verified=1` and `?error=...` likewise.
+The account page reads them (without the route number, `routeQuery()`) and
+then sets the address to `/?7`.
+
+### Adding or removing a page
+
+1. Add the Astro page and its markup as before, and the page key to
+   `SystemYAPage` in `src/systemya/snapshot.ts`.
+2. In `src/systemya/routes.ts`, add the key to `RoutePage`, `PAGES` (title,
+   full screen) and `OLD_PATHS` (its built path), and append a line to `BOOK`
+   with the next number after the highest one already there, counting
+   retired ones, and today's date as `since`.
+3. Link to it with `routeHref("<key>")`, or with its old path in a snapshot.
+4. To remove a page, keep its line and set `retired` to the day it goes. Its
+   number is never given out again, and its address shows not-found.
+
+`tests/routes.test.mjs` checks the book (numbers unique and increasing, the
+first numbers never moving, one live number per page, titles matching the
+page files), the old-path and email-link mapping and the entry script.
+`tests/routes-browser.test.mjs` drives a built `dist/` in headless Chrome when
+`PLAYWRIGHT_CORE` (and `CHROME`) are set, and is skipped otherwise.
+
+### Edge paths
+
+| URL                   | Served by                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------- |
+| `/ui/`, `/vendor/rt/` | The browser UI and STomp's runtime, copied in by `prepare:stomp`                                   |
+| `/room/`              | Edge proxy to Holt, platform `systemya`, including realtime WebSockets. The edge adds the license. |
+| `/v1/games/`          | Edge proxy to Holy Unblocker's games catalog API                                                   |
+| `/cdn/`               | Edge proxy to Holy Unblocker's SDK and game CDN                                                    |
+| `/api/`               | Edge proxy to the Fracital server (Fracital Accounts)                                              |
 
 The build must not write files under `room/`, `v1/`, `cdn/` or `api/`. For an
 unknown path the edge serves `/index.html` with status 200, and the frontend
-renders its own not-found message.
+renders its own not-found page.
 
 ## Accounts and chat
 
@@ -53,13 +120,45 @@ only works once Fracital lists `https://systemya.fracit.al` in
 `BETTER_AUTH_TRUSTED_ORIGINS`. The cross-site sign-in hub needs that entry too.
 
 Holt reads the visitor's identity from `/api/me/chat` on the same proxy. A
-signed-in visitor posts in `/chat` under their Fracital username. Guests can
-read public channels but cannot post. Holt links to the platform's views by
-setting the parent page's hash (`#/account`); `src/systemya/chat-links.ts`
-turns those into page loads (`/account/`, `/theatre.html` and so on).
+signed-in visitor posts in the chat (`/?3`) under their Fracital username.
+Guests can read public channels but cannot post. Holt links to the platform's
+views by setting the parent page's hash (`#/account`);
+`src/systemya/chat-links.ts` turns those into a navigation to the page's number
+(`/?7`, `/?1` and so on) that replaces the hash's history entry, so Back
+returns to the chat.
 
 The edge has no `/wisp/` route. STomp uses Fracital's public relay,
-`wss://holywisp.fracit.al/` (`src/systemya/stomp.ts`).
+`wss://holywisp.fracit.al/` (`src/systemya/stomp-config.json`).
+
+## Browser page
+
+The browser page (`/?2`; its old path `/app/` still works) shows powerMouse's
+browser UI full size under the navbar, in a
+same-origin frame (`src/systemya/proxy.ts`). The UI is the `demo/public`
+folder of the `vendor/powermouse` submodule. After a clone, run
+`git submodule update --init vendor/powermouse`. `npm run prepare:stomp` (run
+by `dev` and `build`) copies it to `public/ui/` and STomp's runtime to
+`public/vendor/rt/`. Both folders are generated and ignored by git.
+
+The copy changes only fixed strings: the runtime's paths, the transports
+(served as `.js`, because the edge serves `.mjs` as a download), the title,
+the branding and the version line. Each replacement must match, so an upstream
+change that moves one stops the build. The UI's scripts and pages get short
+names with a stamp minted per build (`ma.<stamp>.js`), as do the runtime's
+files and STomp's page globals. The names are written to
+`src/systemya/stomp-build.json`. `src/systemya/proxy-frame.js` runs inside the
+UI and passes those names to STomp. `prepare:stomp` updates the folders in
+place, so a running `npm run dev` picks up the new files.
+
+The fragment never holds a readable address. A visit starts as
+`/?2#<base64url of the XOR-encoded URL>`. Once the UI loads, the fragment
+becomes the UI's sealed route (`#html/...`) and follows browsing with
+`replaceState`, so reload, Back and Forward work. A fragment typed into the
+address bar opens at once. `/?2` with no fragment shows the UI's landing
+page. The navbar and home search, every link to another site and game
+launches open here: `openProxy(url)` for a site, `openFrame(src, title)` for
+a same-origin page without the proxy. The UI's commit list comes from
+GitHub's public API, called from the browser.
 
 ## GitHub workflows
 
@@ -70,9 +169,36 @@ The edge has no `/wisp/` route. STomp uses Fracital's public relay,
   dispatch. The build job repeats those checks and uploads `dist/` as an
   artifact. The deploy job rsyncs it to the edge. Deploys run one at a time
   with `cancel-in-progress: false`.
+- `.github/workflows/stomp-update.yml` keeps STomp current. See "Keeping
+  STomp current" below.
 - `scripts/verify-static-dist.mjs` requires `dist/index.html` and rejects
   reserved edge paths, server build output, likely credentials and unexpected
   symlinks.
+
+### Keeping STomp current
+
+powerMouse publishes its `master` branch to npm as `@sysce/stomp@nightly`
+at 07:17 UTC, and only publishes a commit whose CI passed. At 08:53 and 20:53
+UTC, `stomp-update.yml` reads the nightly tag. If that version was published
+after the pinned one, the workflow updates `package.json` and
+`package-lock.json` to it. It also moves the `vendor/powermouse` submodule to
+the commit the version was built from, so the UI and the runtime always come
+from the same tested commit. The submodule only moves forward along `master`,
+and the package never moves to an older version. The workflow then runs the
+same checks as CI and the deploy: `npm ci`, `npm run verify`, `npm run build`,
+`verify-static-dist.mjs` and the deploy contract. After that,
+`scripts/stomp-smoke.mjs` starts STomp from `dist/` in headless Chrome and
+opens a page through the public relay. Nothing else in the build starts
+STomp. If all of that passes, `github-actions[bot]` commits the change to
+`main` and starts `deploy.yml` with `gh workflow run`, because a push made
+with `GITHUB_TOKEN` starts no workflow. If `main` moved during the check,
+nothing is pushed, and the next run tries again on top of the new `main`. If
+a check fails, `main` keeps its pin and the workflow opens an issue titled
+"STomp update needs attention", or comments on the one already open. The
+issue names the failed step and how to reproduce it. The next update that
+passes closes the issue. Use "Run workflow" to try now, or to try a specific
+version. The workflow needs no secrets beyond the `GITHUB_TOKEN` that
+Actions provides.
 
 The `build` script runs `prepare:stomp`, `astro check`, `astro build` and the
 static output check. website2's SDK build (`npm run build:sdk`) is not part of
