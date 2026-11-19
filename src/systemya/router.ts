@@ -61,7 +61,9 @@ function onBeforePreparation(event: Event): void {
   // cross-origin images and frames. A document's headers can't change in place: a move into or
   // out of the browser is a full load (Astro sets location.href when the navigation is
   // cancelled). A browser that can't isolate makes every move into it a full load, never a loop.
-  if ((at.page === "app") !== globalThis.crossOriginIsolated) {
+  // A move from the browser to the browser is a full load too: the UI and the runtime are renamed
+  // every build, and only a fresh document names the current build's files.
+  if (at.page === "app" || globalThis.crossOriginIsolated) {
     prep.preventDefault();
     return;
   }
