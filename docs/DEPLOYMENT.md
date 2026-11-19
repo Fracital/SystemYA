@@ -234,12 +234,18 @@ passed. `stomp-update.yml` moves SystemYA to each new nightly by itself:
   from (its `gitHead`), only forward along `master`, so the UI and the runtime
   always come from the same tested commit. A manual run with a `version` may
   go back.
-- The epoxy transport moves with STomp: the bump reads the
-  `@mercuryworkshop/epoxy-transport` pin the published package names (its
-  `devDependencies`, from powerMouse's `package.json`) and sets SystemYA's to
-  the same commit when it differs. The commit message names that move. The
-  probe looks only at STomp and the submodule, so an epoxy pin that drifts
-  while both are current waits for the next nightly or a bump by hand.
+- The epoxy transport moves with STomp. STomp lists
+  `@mercuryworkshop/epoxy-transport` only in its `devDependencies`, so a STomp
+  bump alone never moves it. Each bump reads that entry from the version it
+  lands on (`npm view @sysce/stomp@<version> devDependencies --json`), sets
+  SystemYA's dependency to exactly that spec and runs `npm install`; the full
+  gate then runs as usual, and the "only the pin changed" check counts
+  `package.json` and `package-lock.json` as the pin. When the entry is missing,
+  or is neither a git URL with a full commit nor an exact version, the update
+  fails with an error that says so (and opens the issue) instead of guessing.
+  The commit message names the epoxy move. The probe looks only at STomp and
+  the submodule, so an epoxy pin that drifts while both are current waits for
+  the next nightly or a bump by hand.
 - The check job holds no write token. It bumps `package.json` and
   `package-lock.json` and the submodule, then runs the same checks as CI and
   the deploy: `npm ci`, `npm run verify`, `npm run build` (which runs

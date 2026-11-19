@@ -292,30 +292,34 @@ jobs:
             git -C "$SUBMODULE" checkout -q --detach "$COMMIT"
             echo "$COMMIT" >"$RUNNER_TEMP/bump/submodule"
           fi
-          # epoxy-transport follows the build the pinned STomp names (powerMouse's devDependencies,
-          # published with the package): 202611190550 hung every page with webTransport on next to
-          # an older epoxy build than its own
+          # epoxy-transport is set to exactly the spec the pinned STomp names in its devDependencies
+          # (published with the package; a STomp bump alone never moves it): 202611190550 hung every
+          # page with webTransport on next to an older epoxy build than its own
           stomp=$(node -p 'require("./package.json").dependencies[process.env.PACKAGE_NAME]')
           retry npm view --json "$PACKAGE_NAME@$stomp" devDependencies >"$RUNNER_TEMP/stomp-dev.json"
-          want=$(node -p 'require(process.argv[1])[process.env.EPOXY_NAME] ?? ""' "$RUNNER_TEMP/stomp-dev.json")
+          want=$(node -p 'const t = require("fs").readFileSync(process.argv[1], "utf8").trim(); (t ? JSON.parse(t) : {})[process.env.EPOXY_NAME] ?? ""' "$RUNNER_TEMP/stomp-dev.json")
           have=$(node -p 'require("./package.json").dependencies[process.env.EPOXY_NAME]')
+          git_spec='^(git\+https://github\.com/|github:)[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(\.git)?#[0-9a-f]{40}$'
+          semver_spec='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
           if [[ -z $want ]]; then
-            echo "::warning::$PACKAGE_NAME@$stomp names no $EPOXY_NAME; $have stays"
-          elif [[ ${want##*#} != "${have##*#}" ]]; then
-            if ! [[ $want =~ ^(git\+https://github\.com/|github:)Fracital/EpoxyTransport(\.git)?#[0-9a-f]{40}$ ]]; then
-              echo "::error::$PACKAGE_NAME@$stomp pins $EPOXY_NAME to $want, not a Fracital/EpoxyTransport commit" | tee -a "$RUNNER_TEMP/gate.log"
-              exit 1
-            fi
-            # set the spec as STomp writes it (npm install name@url would rewrite it to github:)
+            echo "::error::$PACKAGE_NAME@$stomp names no $EPOXY_NAME in its devDependencies; not guessing an epoxy build" | tee -a "$RUNNER_TEMP/gate.log"
+            exit 1
+          elif ! [[ $want =~ $git_spec || $want =~ $semver_spec ]]; then
+            echo "::error::$PACKAGE_NAME@$stomp pins $EPOXY_NAME to $want, neither a git commit (full sha) nor an exact version" | tee -a "$RUNNER_TEMP/gate.log"
+            exit 1
+          elif [[ $want != "$have" ]]; then
+            # written as STomp writes it (npm install name@url would rewrite a git URL to github:)
             node -e 'const fs = require("fs"); const p = JSON.parse(fs.readFileSync("package.json", "utf8")); p.dependencies[process.env.EPOXY_NAME] = process.argv[1]; fs.writeFileSync("package.json", JSON.stringify(p, null, 2) + "\n")' "$want"
             retry npm install --prefer-online 2>&1 | tee -a "$RUNNER_TEMP/gate.log"
-            test "$(node -p 'require("./package-lock.json").packages["node_modules/" + process.env.EPOXY_NAME].resolved.split("#")[1]')" = "${want##*#}"
+            locked=$(node -p 'const e = require("./package-lock.json").packages["node_modules/" + process.env.EPOXY_NAME]; e.resolved.includes("#") ? e.resolved.split("#")[1] : e.version')
+            [[ $locked == "${want##*#}" ]] || { echo "::error::package-lock.json has $EPOXY_NAME at $locked, not $want" | tee -a "$RUNNER_TEMP/gate.log"; exit 1; }
             cp package.json package-lock.json "$RUNNER_TEMP/bump/"
             echo "${have##*#} ${want##*#} $stomp" >"$RUNNER_TEMP/bump/epoxy"
           fi
 
       - name: Only the pin changed
         run: |
+          # the pin: the package and its epoxy-transport (package.json, package-lock.json) and the submodule
           changed=$(git status --porcelain | awk '{ print $2 }' | sort | tr '\n' ' ')
           for path in $changed; do
             case $path in
