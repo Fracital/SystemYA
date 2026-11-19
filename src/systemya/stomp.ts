@@ -13,8 +13,7 @@ const DIRECTORY = build.directory;
 // The edge has no Wisp relay for systemya.fracit.al; Fracital's public relay carries STomp.
 const WISP_URL = config.wisp;
 // true: Wisp over the relay's WebTransport session (found by /webtransport.json on the relay's
-// origin), its WebSocket when UDP or the session is not there. Off for now: holyWisp's session
-// is far slower than its WebSocket, and a first GitHub visit over it stalls.
+// origin), its WebSocket when UDP or the session is not there.
 const WEB_TRANSPORT = config.webTransport;
 const ASSETS = build.assets;
 

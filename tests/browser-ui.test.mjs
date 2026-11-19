@@ -376,10 +376,9 @@ test("CI checks out the submodule, pinned shallow", async () => {
   assert.equal(config.directory, "/vendor/rt/");
   assert.equal(config.ui, "/ui/");
   assert.equal(config.wisp, "wss://holywisp.fracit.al/");
-  // WebTransport is wired through but ships off: holyWisp's session is far slower than its
-  // WebSocket for now, and a first GitHub visit over it stalls
+  // the session is found by the relay's /webtransport.json, the WebSocket kept as the fallback
   assert.equal(typeof config.webTransport, "boolean");
-  assert.equal(config.webTransport, false);
+  assert.equal(config.webTransport, true);
   assert.match(
     await source("src/systemya/stomp.ts"),
     /const WEB_TRANSPORT = config\.webTransport;[\s\S]*webTransport: WEB_TRANSPORT,/,
