@@ -15,7 +15,8 @@ export type SystemYAPage =
   | "chat"
   | "account"
   | "bookmark"
-  | "app";
+  | "app"
+  | "player";
 
 const snapshots: Record<SystemYAPage, string> = {
   index: home,
@@ -27,6 +28,7 @@ const snapshots: Record<SystemYAPage, string> = {
   account: "",
   bookmark: "",
   app: "",
+  player: "",
 };
 
 // The 2022 banner names the Insta-Proxy page in plain text. Every page carries it, and index.html
@@ -42,6 +44,10 @@ export function getSystemYASnapshot(page: SystemYAPage): string {
 }
 
 function renderSnapshot(page: SystemYAPage): string {
+  // The Flash player runs in the browser page's frame (openFrame), under that page's navbar, so
+  // its own page is only the player's <main> (player.ts).
+  if (page === "player")
+    return '<main class="systemya-player" aria-label="Game"></main>';
   if (
     page === "chat" ||
     page === "account" ||

@@ -100,11 +100,26 @@ test(
         "/?6": "privacy",
         "/?7": "account",
         "/?8": "bookmark",
-        "/?9": "not-found",
+        "/?10": "not-found",
         "/nope": "not-found",
       };
       for (const [path, shown] of Object.entries(direct))
         assert.deepEqual(await open(path), { url: path, page: shown });
+      // the player page moves itself into the browser page's frame, replacing its entry
+      await open("/?9#aGVsbG8");
+      await page.waitForFunction(
+        () => document.getElementById("root")?.dataset.page === "app",
+      );
+      assert.match((await where()).url, /^\/\?2#[\w-]+$/);
+      assert.equal(
+        await page.evaluate(
+          () =>
+            document
+              .querySelector("#root > main iframe")
+              ?.contentDocument?.getElementById("root")?.dataset.page,
+        ),
+        "player",
+      );
       assert.equal(
         await page.evaluate(() =>
           document.querySelector("#root > nav a[href='/?3']") ? "linked" : "",

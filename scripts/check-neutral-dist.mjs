@@ -3,14 +3,14 @@ import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * The browser page and the files behind it stay neutral: no served file or folder is named
- * after the packages it comes from, /proxy/ is not built, and the pages SystemYA adds for it
+ * The browser page, the player page and the files behind them stay neutral: no served file or
+ * folder is named after the packages it comes from (the Flash player's included), /proxy/ is not built, and the pages SystemYA adds for it
  * (/app/ and the UI under /ui/) show none of the words below in their text or in the
  * attributes a filter reads. The May 2022 pages keep their own words (their copy talks about
  * proxies, in the 2022 obfuscation).
  */
 export const NAME_WORDS =
-  /stomp|sysce|epoxy|libcurl|powermouse|adblock|rewriter|proxy/i;
+  /stomp|sysce|epoxy|libcurl|powermouse|adblock|rewriter|proxy|ruffle|flash|swf/i;
 export const PAGE_WORDS = /proxy|stomp|powermouse|unblock/i;
 
 /** The text a reader sees, without tags, comments, scripts and styles. */

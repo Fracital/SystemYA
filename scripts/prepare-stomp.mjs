@@ -10,6 +10,7 @@ import { randomBytes } from "node:crypto";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { preparePowerMouse } from "./prepare-powermouse.mjs";
+import { writePlayerBuild } from "./prepare-player.mjs";
 
 /**
  * STomp's runtime under the directory in src/systemya/stomp-config.json, as Fracital vendors it:
@@ -263,4 +264,6 @@ if (
     resolve("src/systemya/stomp-build.json"),
     JSON.stringify(build, null, 2) + "\n",
   );
+  // The player page's Flash player, copied by the same step (prepare-player.mjs).
+  await writePlayerBuild();
 }

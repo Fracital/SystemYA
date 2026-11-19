@@ -6,6 +6,7 @@ import { mountTheatre } from "./theatre";
 import { mountAccount, startAccountSession } from "./account";
 import { mountBookmark } from "./bookmark";
 import { mountChatLinks } from "./chat-links";
+import { mountPlayer } from "./player";
 // Astro ClientRouter preserves same-document navigation between the recovered pages, all of them
 // served from "/" by number (routes.ts).
 // Each page-load rebinds the captured 2022 markup without injecting a new interface.
@@ -19,6 +20,8 @@ function targetUrl(value: string): string {
 
 function initSystemYA(): void {
   const root = document.querySelector<HTMLElement>("#root");
+  // The player page has no navbar: it runs in the browser page's frame (player.ts).
+  if (root?.dataset.page === "player") return mountPlayer(root);
   const nav = root?.querySelector<HTMLElement>("nav");
   if (!root || !nav || nav.dataset.bound === "1") return;
   nav.dataset.bound = "1";

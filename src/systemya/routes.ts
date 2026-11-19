@@ -26,7 +26,8 @@ export type RoutePage =
   | "contact"
   | "privacy"
   | "account"
-  | "bookmark";
+  | "bookmark"
+  | "player";
 
 export interface Route {
   /** the address is `/?<n>` */
@@ -47,6 +48,7 @@ export const BOOK: readonly Route[] = [
   { n: 6, page: "privacy", since: "2026-11-18" },
   { n: 7, page: "account", since: "2026-11-18" },
   { n: 8, page: "bookmark", since: "2026-11-18" },
+  { n: 9, page: "player", since: "2026-11-19" },
 ];
 
 /** What each page shows in the tab, and whether it fills the window under the navbar. */
@@ -61,6 +63,7 @@ export const PAGES: Record<RoutePage, { title: string; fullscreen: boolean }> =
     privacy: { title: "Privacy | SystemYA", fullscreen: false },
     account: { title: "Account | SystemYA", fullscreen: false },
     bookmark: { title: "SystemYA", fullscreen: false },
+    player: { title: "SystemYA", fullscreen: true },
   };
 
 /**
@@ -77,6 +80,7 @@ export const OLD_PATHS: Record<RoutePage, readonly string[]> = {
   privacy: ["/privacy.html", "/privacy"],
   account: ["/account/", "/account", "/account/index.html"],
   bookmark: ["/bookmark.html", "/bookmark"],
+  player: ["/player.html", "/player"],
 };
 
 /** The book as the browser needs it: live numbers to pages, and paths to pages. */

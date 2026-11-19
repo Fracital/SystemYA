@@ -29,6 +29,7 @@ const FIRST = [
   [6, "privacy"],
   [7, "account"],
   [8, "bookmark"],
+  [9, "player"],
 ];
 
 test("the book's numbers are unique, increasing and never move", () => {
@@ -72,6 +73,7 @@ test("each page file passes the book's title and full-screen flag", () => {
     privacy: "privacy.astro",
     account: "account/index.astro",
     bookmark: "bookmark.astro",
+    player: "player.astro",
   };
   for (const [page, file] of Object.entries(files)) {
     const astro = read(`src/pages/${file}`);
@@ -110,7 +112,7 @@ test("addresses: numbers, extra state, unknown numbers and other paths", () => {
     href: "/?2#aGVsbG8",
   });
   assert.equal(at("/", "?1=").href, "/?1");
-  for (const search of ["?9", "?0", "?01", "?999"])
+  for (const search of ["?10", "?0", "?01", "?999"])
     assert.deepEqual(at("/", search), { page: "not-found", href: null });
   assert.deepEqual(at("/nope"), { page: "not-found", href: null });
   assert.deepEqual(at("/room/"), { page: "not-found", href: null });
@@ -136,6 +138,7 @@ test("old paths become their number and keep their query and fragment", () => {
     "/account/?error=INVALID_TOKEN": "/?7&error=INVALID_TOKEN",
     "/account/?oauth=ok": "/?7&oauth=ok",
     "/bookmark.html": "/?8",
+    "/player.html#aGVsbG8": "/?9#aGVsbG8",
     "/index.html": "/",
   };
   for (const [from, to] of Object.entries(cases)) {

@@ -10,17 +10,18 @@ outside this repository.
 Every page is a number on `/`, kept in the route book,
 `src/systemya/routes.ts`. No address names a page.
 
-| Address | Page                                                               |
-| ------- | ------------------------------------------------------------------ |
-| `/`     | Home                                                               |
-| `/?1`   | Theatre (`/?1&category=action&sort=nameASC&page=2`, `/?1&q=mario`) |
-| `/?2`   | Browser page (`/?2#<fragment>`, see "Browser page")                |
-| `/?3`   | Chat, embedding `/room/` in an iframe                              |
-| `/?4`   | Support                                                            |
-| `/?5`   | Contact                                                            |
-| `/?6`   | Privacy                                                            |
-| `/?7`   | Account (Fracital Accounts)                                        |
-| `/?8`   | Insta-Proxy (the 2022 bookmark page)                               |
+| Address | Page                                                                |
+| ------- | ------------------------------------------------------------------- |
+| `/`     | Home                                                                |
+| `/?1`   | Theatre (`/?1&category=action&sort=nameASC&page=2`, `/?1&q=mario`)  |
+| `/?2`   | Browser page (`/?2#<fragment>`, see "Browser page")                 |
+| `/?3`   | Chat, embedding `/room/` in an iframe                               |
+| `/?4`   | Support                                                             |
+| `/?5`   | Contact                                                             |
+| `/?6`   | Privacy                                                             |
+| `/?7`   | Account (Fracital Accounts)                                         |
+| `/?8`   | Insta-Proxy (the 2022 bookmark page)                                |
+| `/?9`   | Flash player, shown in the browser page's frame (see "Player page") |
 
 Extra state follows the number with `&`, and a fragment stays a fragment. An
 unknown or retired number shows the not-found page.
@@ -85,6 +86,7 @@ page files), the old-path and email-link mapping and the entry script.
 | URL                   | Served by                                                                                          |
 | --------------------- | -------------------------------------------------------------------------------------------------- |
 | `/ui/`, `/vendor/rt/` | The browser UI and STomp's runtime, copied in by `prepare:stomp`                                   |
+| `/vendor/pl/`         | The Flash player (`@ruffle-rs/ruffle`), copied in by `prepare:stomp`                               |
 | `/room/`              | Edge proxy to Holt, platform `systemya`, including realtime WebSockets. The edge adds the license. |
 | `/v1/games/`          | Edge proxy to Holy Unblocker's games catalog API                                                   |
 | `/cdn/`               | Edge proxy to Holy Unblocker's SDK and game CDN                                                    |
@@ -159,6 +161,25 @@ page. The navbar and home search, every link to another site and game
 launches open here: `openProxy(url)` for a site, `openFrame(src, title)` for
 a same-origin page without the proxy. The UI's commit list comes from
 GitHub's public API, called from the browser.
+
+## Player page
+
+The player page (`/?9`) is website2's `/flash` page: it plays one SWF with
+the self-hosted build of `@ruffle-rs/ruffle`, pinned exactly in
+`package.json` (the version website2 ships). `prepare:stomp` runs
+`scripts/prepare-player.mjs`, which copies it to `public/vendor/pl/` under
+neutral names: the entry as `pl.<hash>.js` (the hash is of the package's own
+entry), its core chunks as `pc.<hash>.js` and its `.wasm` files under their
+content-hash names, with the entry's references renamed to match. Each rename
+must match, so an upstream change stops the build. The folder and
+`src/systemya/player-build.json` (the entry's name) are generated and ignored
+by git. The edge serves `.wasm` as `application/wasm`, which the player needs.
+
+The page's template is only its `<main>`, without the navbar. A Flash launch
+opens `/?9#<code>` with `openFrame`, so it shows full size in the browser
+page's frame, under the navbar. `<code>` is the SWF's same-origin path in the
+fragment code of `proxy-hash.ts`. Opened on its own, `/?9` moves itself into
+that frame and replaces its history entry (`src/systemya/player.ts`).
 
 ## GitHub workflows
 

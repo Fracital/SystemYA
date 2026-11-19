@@ -40,6 +40,9 @@ public/vendor/rt/
 # The browser UI (vendor/powermouse's demo host) and this build's names, by the same step
 public/ui/
 src/systemya/stomp-build.json
+# The player page's Flash player and its names, by the same step (scripts/prepare-player.mjs)
+public/vendor/pl/
+src/systemya/player-build.json
 
 .github/agents/
 

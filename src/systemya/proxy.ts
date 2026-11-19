@@ -93,9 +93,14 @@ export function openProxy(url: string): void {
 
 /**
  * Show the same-origin page `src` (a path, or a URL on this origin) full size under the navbar,
- * without the proxy. Any other origin opens in the browser UI.
+ * without the proxy. Any other origin opens in the browser UI. `replace` swaps the current
+ * history entry instead of adding one.
  */
-export function openFrame(src: string, title?: string): void {
+export function openFrame(
+  src: string,
+  title?: string,
+  { replace = false }: { replace?: boolean } = {},
+): void {
   const url = new URL(src, location.href);
   if (url.origin !== location.origin) return openProxy(url.href);
   const path = `${url.pathname}${url.search}${url.hash}`;
@@ -103,7 +108,18 @@ export function openFrame(src: string, title?: string): void {
     try {
       sessionStorage.setItem(TITLE_KEY + path, title);
     } catch {}
-  void navigate(appHref(frameHash(path)));
+  void navigate(appHref(frameHash(path)), {
+    history: replace ? "replace" : "auto",
+  });
+}
+
+/** The title openFrame was given for the framed page at `path`, if any. */
+export function frameTitle(path: string): string | null {
+  try {
+    return sessionStorage.getItem(TITLE_KEY + path);
+  } catch {
+    return null;
+  }
 }
 
 function open(current: View, url: string): void {
@@ -138,11 +154,7 @@ function makeView(kind: View["kind"], src: string, initial = ""): View {
 function render(main: HTMLElement, target: ProxyTarget): void {
   if (target.kind === "frame") {
     if (view?.kind === "frame" && view.path === target.path) return;
-    let title: string | null = null;
-    try {
-      title = sessionStorage.getItem(TITLE_KEY + target.path);
-    } catch {}
-    document.title = title ?? TITLE;
+    document.title = frameTitle(target.path) ?? TITLE;
     view = makeView("frame", target.path);
     view.path = target.path;
     main.replaceChildren(view.frame);

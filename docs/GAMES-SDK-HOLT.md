@@ -27,7 +27,7 @@ The SDK calls are the ones website2 makes: `HU.query` with `groupBy:
 "category"` and `limitPerGroup` for the drawers, with `category`, `offset`,
 `limit`, `sort` and `order` for a category, with `search` for search results
 and suggestions, `HU.getGame` before a launch and `HU.countPlay` once per game
-per browser. Every query passes `type` with the SDK's types except `flash`.
+per browser. Every query passes `type` with all of the SDK's types.
 Thumbnails use each entry's opaque `imagePath`.
 
 A drawer shows one row. Its round button opens the drawer in place, and stays
@@ -41,14 +41,23 @@ website2's `TheatrePlayer.astro`:
 
 - `proxy` games open their source URL in STomp, over Fracital's public relay
   `wss://holywisp.fracit.al/`.
-- `embed` games open the SDK's signed `assetPath` in SystemYA's frame.
+- `embed` games open the SDK's signed `assetPath` in SystemYA's frame when
+  their source is a folder (`./html5/x/`), whose files the signed path serves
+  under its token. A source that is one page (`./html5/x/index.html`) loads
+  its neighbours relative to the token, where they are not found, and a folder
+  written without its slash (`./html5/x`) is not served at all. Those open at
+  the edge's raw `/cdn/` path instead: the path of the SDK's launch URL
+  (`launch.url`, on Holy Unblocker's CDN host), with the slash added for a
+  folder. The edge proxies `/cdn/` to the same CDN.
 - `emulator.*` games open the SDK's `playerPath` (webretro) with the
   `assetPath` as the ROM.
-- `flash` games need website2's Ruffle page at `/flash`, which the static
-  build does not have, so the catalog leaves them out.
+- `flash` games (the SDK's `flash` launch kind) open the player page, `/?9`,
+  with the path of `launch.url` (`/cdn/flash/<name>.swf`) as the movie. See
+  "Player page" in `DEPLOYMENT.md`.
 
 The `launchPath` (`/hub/?v=...`) is a website2 page and is not used here.
-The browser talks to the SDK's opaque `/cdn/` routes only. Do not add browser
+The browser talks to the SDK's `/cdn/` routes, and to the raw `/cdn/` paths
+above for games and movies. Do not add browser
 requests to `/v1/games/` or show raw game source URLs in the UI.
 
 The bootstrap only exists behind the edge. `npm run dev` and `npm run preview`

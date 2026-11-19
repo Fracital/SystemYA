@@ -42,6 +42,10 @@ May 2022 interface and builds to a static Astro SPA at `systemya.fracit.al`.
   with `openFrame(src, title)` from `src/systemya/proxy.ts`. Never write a
   readable address into the fragment, and keep served names and the page's
   text free of proxy words (`scripts/check-neutral-dist.mjs`).
+- `/?9` is the Flash player page (`src/systemya/player.ts`), opened with
+  `openFrame` by Flash launches. `@ruffle-rs/ruffle` is pinned exactly and
+  copied to `/vendor/pl/` under neutral names by `scripts/prepare-player.mjs`
+  (run by `prepare:stomp`). Never serve `.mjs` or a file named after it.
 
 ## CI and deployment
 

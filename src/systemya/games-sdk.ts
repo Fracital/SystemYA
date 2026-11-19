@@ -5,6 +5,7 @@ import type {
   TheatreEntry,
   TheatreEntryMin,
 } from "../../sdk/src/types/index";
+import { playerHref } from "./player";
 import { openFrame, openProxy } from "./proxy";
 
 declare global {
@@ -50,12 +51,9 @@ export function loadSDK(): Promise<HUCatalogClient> {
   return bootstrap;
 }
 
-// Flash games need website2's Ruffle page at /flash, which the static build does not ship.
-const UNSUPPORTED_TYPES = new Set(["flash"]);
-
-/** The SDK's game types that SystemYA can open, for every catalog query. */
+/** The SDK's game types that SystemYA can open, for every catalog query: all of them. */
 export function playableTypes(sdk: HUCatalogClient): string[] {
-  return sdk.types.filter((type) => !UNSUPPORTED_TYPES.has(type));
+  return [...sdk.types];
 }
 
 /** website2's theatre sort names and the API sort and order each one maps to (renderTheatre.ts). */
@@ -114,6 +112,41 @@ export function imageFor(sdk: HUCatalogClient, item: TheatreEntryMin): string {
   return safeLocalPath(item.imagePath) || sdk.getImageUrl(item.id);
 }
 
+/**
+ * The edge's own path for a local game's file ("./flash/x.swf"): the path of the SDK's launch
+ * URL, which names Holy Unblocker's CDN (/cdn/flash/x.swf). The edge proxies /cdn/ to that CDN,
+ * so the path works on this origin. Null unless the launch URL is the game's local file.
+ */
+function cdnPath(game: TheatreEntry): string | null {
+  const launch = game.launch;
+  if (typeof game.src !== "string" || !game.src.startsWith("./")) return null;
+  if (!launch || typeof launch.url !== "string") return null;
+  try {
+    const url = new URL(launch.url);
+    return /^https?:$/.test(url.protocol) &&
+      decodeURI(url.pathname) === `/cdn/${game.src.slice(2)}`
+      ? safeLocalPath(url.pathname)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The raw /cdn/ path for a local game that the signed asset path cannot serve, or null. The
+ * signed path serves a folder's files under its token ("./html5/x/"), but a single page's
+ * neighbours ("./html5/x/index.html" loading "style.css") resolve next to the token and are not
+ * found, and a folder written without its slash ("./html5/x") is not served at all. Those games
+ * open at the edge's raw /cdn/ path, where relative URLs work; the folder gets its slash.
+ */
+function rawPath(game: TheatreEntry): string | null {
+  const src = typeof game.src === "string" ? game.src : "";
+  if (!src.startsWith("./") || src.endsWith("/")) return null;
+  const path = cdnPath(game);
+  if (!path) return null;
+  return /\.html?$/i.test(src) ? path : `${path}/`;
+}
+
 /** How website2's TheatrePlayer opens a game, as one URL for SystemYA's frame. */
 function resolveLaunch(
   game: TheatreEntry,
@@ -125,10 +158,16 @@ function resolveLaunch(
       ? { kind: "proxy", url: src }
       : { error: "This game has no site to open" };
   }
-  if (UNSUPPORTED_TYPES.has(type))
-    return { error: "Flash games are not available on SystemYA" };
-  // Local games ("./...") are served through the SDK's signed asset path.
-  const asset = safeLocalPath(game.assetPath);
+  // The SDK's flash launch kind: its SWF plays on the player page (website2's /flash).
+  if (type === "flash" || game.launch?.type === "flash") {
+    const movie = cdnPath(game) ?? safeLocalPath(game.assetPath);
+    return movie
+      ? { kind: "frame", url: location.origin + playerHref(movie) }
+      : { error: "This game has no supported launch route" };
+  }
+  // Local games ("./...") are served through the SDK's signed asset path, unless it fails them.
+  const raw = type === "embed" ? rawPath(game) : null;
+  const asset = raw ?? safeLocalPath(game.assetPath);
   if (!asset) return { error: "This game has no supported launch route" };
   const url = location.origin + asset;
   if (type === "embed") return { kind: "frame", url };

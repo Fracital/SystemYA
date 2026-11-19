@@ -55,7 +55,7 @@
     "@mercuryworkshop/scramjet-utils": "^0.0.3",
     "@noble/ciphers": "^2.2.0",
     "@noble/hashes": "^2.4.0",
-    "@ruffle-rs/ruffle": "^0.3.0",
+    "@ruffle-rs/ruffle": "0.3.0",
     "@smithy/util-base64": "^4.5.2",
     "@sysce/stomp": "4.2.0-nightly.202611190245.g6a59a1d",
     "@titaniumnetwork-dev/ultraviolet": "https://github.com/titaniumnetwork-dev/Ultraviolet/releases/download/v3.2.8/titaniumnetwork-dev-ultraviolet-headers.tgz",

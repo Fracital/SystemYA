@@ -3,3 +3,22 @@
 #root > main.systemya-app {
   background: #000;
 }
+
+/* The player page (/?9), inside the browser page's frame: the movie fills the frame on black. */
+#root > main.systemya-player {
+  align-items: center;
+  background: #000;
+  justify-content: center;
+}
+#root > main.systemya-player > ruffle-player {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+#root > main.systemya-player > .systemya-player-error {
+  color: #fff;
+  font-family: inherit;
+  margin: 0;
+  padding: 1em;
+  text-align: center;
+}
