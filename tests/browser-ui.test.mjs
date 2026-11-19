@@ -265,6 +265,7 @@ test(
       runtime: {
         transport: { epoxy: "ln.x.js", h3: "q3.x.js", libcurl: "cu.x.js" },
         page: { script: "ct.x.js", search: "sb.x.js" },
+        assets: { serviceWorker: "sw.x.js" },
       },
       names: { error: "$abcdef" },
     });
