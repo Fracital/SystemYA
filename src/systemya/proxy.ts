@@ -18,6 +18,7 @@ import {
   webUrl,
   type ProxyTarget,
 } from "./proxy-hash";
+import { syncUiTheme } from "./ui-theme";
 
 /**
  * Where the browser page lives. Everything that leads to it (openProxy, openFrame, links)
@@ -73,6 +74,8 @@ type View = {
   /** the route the UI shows, or the framed path */
   path: string;
   loaded: boolean;
+  /** stops following SystemYA's theme; set only for the "ui" view */
+  cleanup?: () => void;
 };
 let view: View | undefined;
 /** The mounted page's teardown; set while the browser page is on screen. */
@@ -137,8 +140,11 @@ function makeView(kind: View["kind"], src: string, initial = ""): View {
   if (initial)
     (frame as HTMLIFrameElement & { systemyaHash?: string }).systemyaHash =
       initial;
+  // The browser UI carries powerMouse's theme.js, which reads the shared theme key before body
+  // parse: write it before src so the first paint matches SystemYA's light/dark.
+  const cleanup = kind === "ui" ? syncUiTheme(frame) : undefined;
   frame.src = src;
-  const made: View = { kind, frame, path: "", loaded: false };
+  const made: View = { kind, frame, path: "", loaded: false, cleanup };
   frame.addEventListener("load", () => {
     made.loaded = true;
     if (kind === "frame") {
@@ -155,6 +161,7 @@ function render(main: HTMLElement, target: ProxyTarget): void {
   if (target.kind === "frame") {
     if (view?.kind === "frame" && view.path === target.path) return;
     document.title = frameTitle(target.path) ?? TITLE;
+    view?.cleanup?.();
     view = makeView("frame", target.path);
     view.path = target.path;
     main.replaceChildren(view.frame);
@@ -174,6 +181,7 @@ function render(main: HTMLElement, target: ProxyTarget): void {
       : target.kind === "url"
         ? `#${encodeURIComponent(target.url)}`
         : "";
+  view?.cleanup?.();
   view = makeView("ui", UI, initial);
   if (target.kind === "route") view.path = target.hash;
   main.replaceChildren(view.frame);
@@ -223,6 +231,7 @@ export function mountProxy(root: HTMLElement): () => void {
     window.removeEventListener("message", onMessage);
     window.removeEventListener("hashchange", onHashChange);
     document.removeEventListener("astro:before-swap", teardown);
+    view?.cleanup?.();
     view?.frame.remove();
     view = undefined;
     unmount = undefined;
