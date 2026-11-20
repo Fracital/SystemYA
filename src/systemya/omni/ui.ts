@@ -64,7 +64,11 @@ declare global {
 
 const isWeb = (url: string) => /^https?:\/\//i.test(url);
 
+// While the list is open (data-suggested on the box's container), the box's bottom corners
+// square off and the list hangs flush under it: its width, its focus border, rounded below only.
 const STYLE = `
+[data-suggested]>.form-text,.chrome form[data-suggested] .omnibox:focus{border-bottom-left-radius:0;border-bottom-right-radius:0}
+[data-suggested]>.suggestions{right:auto;border-color:#80bdff;border-top:0;border-radius:0 0 .25rem .25rem;box-sizing:border-box}
 .suggestions .omni-head{padding:.35rem .75rem .15rem;font:600 11px 'Roboto',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#8a939b;border-top:1px solid #eee;cursor:default;user-select:none}
 .suggestions .omni-head:first-child{border-top:0}
 .suggestions .omni-head+.auto-fill{border-top:0}
@@ -190,6 +194,20 @@ window.systemyaSuggest = (ui) => {
       },
       row,
       header,
+      toggled: (open) => {
+        container.toggleAttribute("data-suggested", open);
+        if (open) place();
+      },
+    });
+    /** The list spans the box exactly (the landing's box is a little wider than its container). */
+    function place() {
+      const box = input.getBoundingClientRect();
+      const frame = container.getBoundingClientRect();
+      list.style.left = `${box.left - frame.left - container.clientLeft}px`;
+      list.style.width = `${box.width}px`;
+    }
+    addEventListener("resize", () => {
+      if (container.hasAttribute("data-suggested")) place();
     });
   });
   // The menu's "Clear history", after About; the menu's keys find every menuitem. Added once
