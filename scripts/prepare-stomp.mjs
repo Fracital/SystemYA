@@ -40,6 +40,7 @@ export const RUNTIME = Object.freeze({
   core: ["core.wasm", "cr.wasm"],
   blocker: ["blocker.wasm", "bk.wasm"],
   adblockResources: ["adblock-resources.json", "br.json"],
+  adblockSnapshot: ["adblock-snapshot.dat.gz", "bs.dat.gz"],
   rewriterLib: ["rewriterLib.js", "rl.js"],
   omnibox: ["omnibox.js", "ob.js"],
   extensionsRuntime: ["extensionsRuntime.js", "xr.js"],
@@ -48,8 +49,13 @@ export const RUNTIME = Object.freeze({
 /** Keys a newer STomp adds that the nightly before it does not have: the build ships them when
  * the package has them, so the updater can take the release that adds one. The address bars'
  * dropdown (omnibox.js) and the runtime of the documents a browser extension reaches
- * (extensionsRuntime.js) came after 4.2.0-nightly.202611192242. */
-export const OPTIONAL = new Set(["omnibox", "extensionsRuntime"]);
+ * (extensionsRuntime.js) came after 4.2.0-nightly.202611192242; the prebuilt adblock snapshot
+ * (adblock-snapshot.dat.gz) came after 4.2.0-nightly.202611200512. */
+export const OPTIONAL = new Set([
+  "omnibox",
+  "extensionsRuntime",
+  "adblockSnapshot",
+]);
 
 /** The other files a page loads: the ES module controller (stomp.ts), the classic script build
  * and the search helper (the powerMouse UI). */

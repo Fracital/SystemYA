@@ -97,12 +97,29 @@ export function patches({
       ],
       ["url('/pm/", `url('${ui}`, "any"],
     ],
+    // The theme reader (globalThis.PMTheme, loaded in the head before body parse) and the
+    // Extensions page (its script and stylesheet, loaded before pm/main.js). They name no
+    // other served file, so they are copied and stamped as they are; index.html's tags below
+    // point at the stamped names.
+    "pm/theme.js": [],
+    "pm/extensions-page.js": [],
+    "pm/extensions-page.css": [],
     "index.html": [
       ["<title>powerMouse</title>", "<title>SystemYA</title>"],
       ['\t\t<meta name="description" content="STomp web proxy demo" />\n', ""],
       [
         '<link rel="stylesheet" href="/pm/main.css" />',
         `<link rel="stylesheet" href="${at("pm/main.css")}" /><style>${obfuscationRules().join("")}</style>${LANDING_GUARD}`,
+      ],
+      // the Extensions page's stylesheet, in the head after main.css
+      [
+        '<link rel="stylesheet" href="/pm/extensions-page.css" />',
+        `<link rel="stylesheet" href="${at("pm/extensions-page.css")}" />`,
+      ],
+      // the theme reader (globalThis.PMTheme), in the head before body parse
+      [
+        '<script src="/pm/theme.js"></script>',
+        `<script src="${at("pm/theme.js")}"></script>`,
       ],
       // The cover the guard paints over the demo-styled body until the browser view opens.
       [
@@ -136,6 +153,11 @@ export function patches({
             ],
           ]
         : []),
+      // the Extensions page's script, before pm/main.js (it uses main.js's globals when they run)
+      [
+        '<script src="/pm/extensions-page.js"></script>',
+        `<script src="${at("pm/extensions-page.js")}"></script>`,
+      ],
       [
         '<script src="/pm/main.js"></script>',
         `<script src="${at("pm/main.js")}"></script>`,
@@ -263,6 +285,9 @@ const RENAMED = {
   "error.html": "er.html",
   "pm/main.js": "ma.js",
   "pm/main.css": "ma.css",
+  "pm/theme.js": "th.js",
+  "pm/extensions-page.js": "ep.js",
+  "pm/extensions-page.css": "ep.css",
   "frame.js": "sy.js",
 };
 
