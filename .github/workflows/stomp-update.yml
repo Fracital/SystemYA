@@ -81,7 +81,7 @@ env:
 
 jobs:
   probe:
-    runs-on: ubuntu-latest
+    runs-on: [divide, ci]
     timeout-minutes: 30
     permissions:
       contents: read
@@ -244,7 +244,7 @@ jobs:
   check:
     needs: probe
     if: needs.probe.outputs.update == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [divide, ci]
     timeout-minutes: 45
     permissions:
       contents: read
@@ -412,7 +412,7 @@ jobs:
   publish:
     needs: [probe, check]
     if: needs.probe.outputs.update == 'true' && needs.probe.outputs.dry_run != 'true'
-    runs-on: ubuntu-latest
+    runs-on: [divide, ci]
     timeout-minutes: 40
     permissions:
       contents: write
@@ -554,7 +554,7 @@ jobs:
     if: >-
       always() && needs.probe.outputs.update == 'true' && needs.probe.outputs.dry_run != 'true' &&
       (needs.check.result == 'failure' || needs.publish.result == 'failure')
-    runs-on: ubuntu-latest
+    runs-on: [divide, ci]
     timeout-minutes: 5
     permissions:
       actions: read

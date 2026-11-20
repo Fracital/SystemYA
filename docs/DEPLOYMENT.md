@@ -212,6 +212,16 @@ that frame and replaces its history entry (`src/systemya/player.ts`).
   with `cancel-in-progress: false`.
 - `.github/workflows/stomp-update.yml` keeps STomp current. See "Keeping
   STomp current" below.
+- Every job runs on divide's self-hosted runners, not GitHub's hosted ones.
+  CI, the build and the STomp updater use the `ci` runner group (CT 208, the
+  untrusted pool, labels `divide` and `ci`): public internet only, no deploy
+  secrets. The deploy job uses the `deploy` group (`divide-deploy` on CT 204,
+  labels `divide` and `deploy`), which admits only `deploy.yml` on `main`. That
+  runner is persistent and shared with powerMouse, so the deploy writes its SSH
+  key and config under `RUNNER_TEMP` (rsync finds them through
+  `RSYNC_RSH`) and deletes them when the job ends. Pull requests from forks
+  wait for approval before they run. The runners are described in the infra
+  repo's `docs/divide-ci-runner.md`.
 - `scripts/verify-static-dist.mjs` requires `dist/index.html` and rejects
   reserved edge paths, server build output, likely credentials and unexpected
   symlinks.

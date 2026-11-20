@@ -23,7 +23,8 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # divide's untrusted CI pool (CT 208): public internet only, no secrets
+    runs-on: [divide, ci]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -52,7 +53,10 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    # divide's trusted deploy runner (CT 204, runner group deploy). The group only admits this
+    # workflow on main. The runner is persistent and shared, so the SSH key and config live in
+    # RUNNER_TEMP and are removed when the job ends, never in the runner user's ~/.ssh.
+    runs-on: [divide, deploy]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -74,26 +78,29 @@ jobs:
             echo "::error::SYSTEMYA_DEPLOY_KEY secret is not set"
             exit 1
           fi
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$SYSTEMYA_DEPLOY_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+          dir="$RUNNER_TEMP/ssh"
+          install -d -m 700 "$dir"
+          printf '%s\n' "$SYSTEMYA_DEPLOY_KEY" > "$dir/id_ed25519"
+          chmod 600 "$dir/id_ed25519"
           {
             echo "$EDGE_HOST $EDGE_HOST_KEY"
             echo "$JUMP_HOST $JUMP_HOST_KEY"
-          } > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
-          cat > ~/.ssh/config <<EOF2
+          } > "$dir/known_hosts"
+          chmod 600 "$dir/known_hosts"
+          cat > "$dir/config" <<EOF2
           Host edge
             HostName $EDGE_HOST
             User systemya
             ProxyJump root@$JUMP_HOST
           Host *
-            IdentityFile ~/.ssh/id_ed25519
+            IdentityFile $dir/id_ed25519
             IdentitiesOnly yes
+            UserKnownHostsFile $dir/known_hosts
             BatchMode yes
             StrictHostKeyChecking yes
           EOF2
-          chmod 600 ~/.ssh/config
+          chmod 600 "$dir/config"
+          echo "RSYNC_RSH=ssh -F $dir/config" >> "$GITHUB_ENV"
 
       # Pages loaded before this deploy still name their own build's files (the browser UI and
       # runtime are renamed every build), so the files of the last 72 hours of deploys stay.
@@ -116,3 +123,7 @@ jobs:
           curl -fsS -m 20 -o /dev/null -w 'chat %{http_code}\n' https://systemya.fracit.al/room/
           curl -fsS -m 20 -o /dev/null -w 'sdk %{http_code}\n' https://systemya.fracit.al/cdn/index.js
           curl -fsS -m 20 -o /dev/null -w 'accounts %{http_code}\n' https://systemya.fracit.al/api/me/options
+
+      - name: Remove the SSH key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/ssh"
