@@ -41,12 +41,14 @@ export const RUNTIME = Object.freeze({
   adblockResources: ["adblock-resources.json", "br.json"],
   rewriterLib: ["rewriterLib.js", "rl.js"],
   omnibox: ["omnibox.js", "ob.js"],
+  extensionsRuntime: ["extensionsRuntime.js", "xr.js"],
 });
 
 /** Keys a newer STomp adds that the nightly before it does not have: the build ships them when
  * the package has them, so the updater can take the release that adds one. The address bars'
- * dropdown (omnibox.js) came after 4.2.0-nightly.202611192242. */
-export const OPTIONAL = new Set(["omnibox"]);
+ * dropdown (omnibox.js) and the runtime of the documents a browser extension reaches
+ * (extensionsRuntime.js) came after 4.2.0-nightly.202611192242. */
+export const OPTIONAL = new Set(["omnibox", "extensionsRuntime"]);
 
 /** The other files a page loads: the ES module controller (stomp.ts), the classic script build
  * and the search helper (the powerMouse UI). */

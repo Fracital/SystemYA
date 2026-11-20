@@ -153,28 +153,35 @@ test("a STomp release with an asset the build does not name stops the build", as
   }
 });
 
-test("a STomp from before omnibox.js builds without it", async () => {
+test("a STomp from before the optional assets builds without them", async () => {
   const dir = await mkdtemp(join(tmpdir(), "systemya-rt-"));
   try {
     const inputs = await fixture(dir);
-    await rm(join(inputs.source, "omnibox.js"));
+    const optional = [...OPTIONAL].map((key) => RUNTIME[key]);
+    for (const [file] of optional) await rm(join(inputs.source, file));
     for (const [file] of [
       ...Object.values(RUNTIME),
       ...Object.values(PAGE_FILES),
     ]) {
+      if (optional.some(([gone]) => gone === file)) continue;
       const path = join(inputs.source, file);
-      if (file === "omnibox.js") continue;
-      await writeFile(
-        path,
-        (await readFile(path, "utf8")).replace(',omnibox:"omnibox.js"', ""),
-      );
+      let text = await readFile(path, "utf8");
+      for (const key of OPTIONAL)
+        text = text.replace(`,${key}:"${RUNTIME[key][0]}"`, "");
+      await writeFile(path, text);
     }
     const runtime = await prepareStomp({
       ...inputs,
       destination: join(dir, "out"),
     });
-    assert.ok(!("omnibox" in runtime.assets));
-    assert.ok(!runtime.files.some((name) => name.startsWith("ob.")));
+    for (const key of OPTIONAL) assert.ok(!(key in runtime.assets), key);
+    for (const [, short] of optional)
+      assert.ok(
+        !runtime.files.some((name) =>
+          name.startsWith(short.split(".")[0] + "."),
+        ),
+        short,
+      );
     // the ES module twin is in dist/ but not served
     await writeFile(join(inputs.source, "omnibox.mjs"), "// esm ".repeat(10));
     await prepareStomp({ ...inputs, destination: join(dir, "out") });
