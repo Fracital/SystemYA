@@ -301,9 +301,13 @@ test(
   "each UI patch must match, and every file the UI names must be served",
   { skip: !haveDemo && "vendor/powermouse is not checked out" },
   async () => {
+    const mainJs = await readFile(new URL("pm/main.js", demo), "utf8");
+    // detected the way prepare-powermouse.mjs detects it: a UI with its own omnibox
+    const upstreamOmnibox = mainJs.includes("function loadOmnibox() {");
     const table = patches({
       directory: "/vendor/rt/",
       ui: "/ui/",
+      upstreamOmnibox,
       files: {
         "error.html": "er.x.html",
         "pm/main.css": "ma.x.css",
@@ -313,15 +317,11 @@ test(
       runtime: {
         transport: { epoxy: "ln.x.js", h3: "q3.x.js", libcurl: "cu.x.js" },
         page: { script: "ct.x.js", search: "sb.x.js" },
-        assets: { serviceWorker: "sw.x.js" },
+        assets: { serviceWorker: "sw.x.js", omnibox: "ob.x.js" },
       },
       names: { error: "$abcdef" },
     });
-    applyPatches(
-      "pm/main.js",
-      await readFile(new URL("pm/main.js", demo), "utf8"),
-      table["pm/main.js"],
-    );
+    applyPatches("pm/main.js", mainJs, table["pm/main.js"]);
     assert.throws(
       () => applyPatches("pm/main.js", "no match here", table["pm/main.js"]),
       /expected .* found it 0 times/,

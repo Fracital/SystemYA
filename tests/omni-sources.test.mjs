@@ -45,29 +45,35 @@ const mainJs = new URL(
   import.meta.url,
 );
 test(
-  "the UI's address bars are handed to SystemYA's suggestions",
+  "the UI's address bars get one dropdown: STomp's omnibox, or SystemYA's suggestions before it",
   { skip: !existsSync(mainJs) && "vendor/powermouse is not checked out" },
   async () => {
+    const source = await readFile(mainJs, "utf8");
+    // detected the way prepare-powermouse.mjs detects it
+    const upstreamOmnibox = source.includes("function loadOmnibox() {");
     const table = patches({
       directory: "/vendor/rt/",
       ui: "/ui/",
+      upstreamOmnibox,
       files: { "error.html": "er.x.html" },
       runtime: {
         transport: { epoxy: "e.js", h3: "h.js", libcurl: "l.js" },
         page: { script: "c.js", search: "s.js" },
-        assets: { serviceWorker: "sw.x.js" },
+        assets: { serviceWorker: "sw.x.js", omnibox: "ob.x.js" },
       },
       names: { error: "$x" },
     });
-    const js = applyPatches(
-      "pm/main.js",
-      await readFile(mainJs, "utf8"),
-      table["pm/main.js"],
-    );
-    assert.match(
-      js,
-      /window\.systemyaSuggest\(\{\n\t\tinputs: \[mainForm\.url, omni\.url\]/,
-    );
-    assert.doesNotMatch(js, /^attachSuggestions\(/m);
+    const js = applyPatches("pm/main.js", source, table["pm/main.js"]);
+    if (upstreamOmnibox) {
+      // STomp's own dropdown loads, and SystemYA's is not wired in beside it
+      assert.match(js, /^loadOmnibox\(\)/m);
+      assert.doesNotMatch(js, /systemyaSuggest/);
+    } else {
+      assert.match(
+        js,
+        /window\.systemyaSuggest\(\{\n\t\tinputs: \[mainForm\.url, omni\.url\]/,
+      );
+      assert.doesNotMatch(js, /^attachSuggestions\(/m);
+    }
   },
 );

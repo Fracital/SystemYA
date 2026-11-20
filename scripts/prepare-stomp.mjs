@@ -6,6 +6,7 @@ import {
   unlink,
   writeFile,
 } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -176,7 +177,13 @@ export async function prepareStomp({
   const assets = {};
   const operations = [];
   for (const [key, [from, to]] of Object.entries(RUNTIME)) {
-    if (!keys.includes(key)) continue;
+    // An optional file ships when the package has it, named by the controller or not: the
+    // powerMouse UI loads omnibox.js by its own assets setting (assetName('omnibox')).
+    if (
+      !keys.includes(key) &&
+      !(OPTIONAL.has(key) && existsSync(join(source, from)))
+    )
+      continue;
     assets[key] = name(to);
     operations.push({ from: join(source, from), to: name(to) });
   }
@@ -193,6 +200,11 @@ export async function prepareStomp({
     libcurl: name("cu.js"),
   };
   const epoxyWasm = name("ln.wasm");
+  // epoxy builds from 4d5a277 on also load a SIMD build of the same wasm, by name next to
+  // themselves, when the browser validates SIMD and bulk memory
+  const epoxySimd = existsSync(join(epoxy, "epoxy-simd.wasm"))
+    ? name("lm.wasm")
+    : null;
   const h3wasm = name("q3.wasm");
   operations.push(
     {
@@ -201,10 +213,21 @@ export async function prepareStomp({
       transform: (text) => {
         if (!text.includes('"epoxy.wasm"'))
           throw new Error("epoxy-transport no longer names epoxy.wasm");
-        return text.split('"epoxy.wasm"').join(JSON.stringify(epoxyWasm));
+        const namesSimd = text.includes('"epoxy-simd.wasm"');
+        if (namesSimd && !epoxySimd)
+          throw new Error(
+            "epoxy-transport names epoxy-simd.wasm, which its dist/ does not have",
+          );
+        let out = text.split('"epoxy.wasm"').join(JSON.stringify(epoxyWasm));
+        if (namesSimd)
+          out = out.split('"epoxy-simd.wasm"').join(JSON.stringify(epoxySimd));
+        return out;
       },
     },
     { from: join(epoxy, "epoxy.wasm"), to: epoxyWasm },
+    ...(epoxySimd
+      ? [{ from: join(epoxy, "epoxy-simd.wasm"), to: epoxySimd }]
+      : []),
     {
       from: join(epoxy, "h3/stomp_h3.js"),
       to: transport.h3,
