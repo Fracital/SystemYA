@@ -120,6 +120,17 @@ export function patches({
         '<script src="/stomp/SearchBuilder.js"></script>',
         `<script src="${directory}${runtime.page.search}"></script>\n\t\t<script src="${at("frame.js")}"></script>`,
       ],
+      // A STomp whose UI loads the omnibox by a <script data-omnibox> tag (the demo server
+      // stamped /stomp/omnibox.js; SystemYA has no server) gets the tag pointed at the stamped
+      // asset, so there is no 404 and loadOmnibox uses it instead of its assetName fallback.
+      ...(upstreamOmnibox
+        ? [
+            [
+              '<script src="/stomp/omnibox.js" defer data-omnibox></script>',
+              `<script src="${directory}${runtime.assets.omnibox}" defer data-omnibox></script>`,
+            ],
+          ]
+        : []),
       [
         '<script src="/pm/main.js"></script>',
         `<script src="${at("pm/main.js")}"></script>`,
