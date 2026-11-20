@@ -5,6 +5,39 @@
 (() => {
   const CONFIG = __SYSTEMYA_FRAME_CONFIG__;
 
+  // Keep the browser UI's demo landing (the quick-link grid and the demo shell) from showing
+  // while a fresh load goes straight to a site. index.html hides #landing and paints a neutral
+  // cover over the demo-styled body until the browser view opens, except when the load has no
+  // site to open: the home screen, which the head marks sy-home so the landing shows at once.
+  // The view opens when pm/main.js puts body in .browsing (navigate's activateTab/showBrowser);
+  // revealing then adds sy-home too, so a later Home press shows the landing as the home screen.
+  // If the controller never gets there (a dead relay, so navigate never runs), fall back to the
+  // home screen after a grace period, so the page is never stuck on the cover.
+  const root = document.documentElement;
+  if (!root.classList.contains("sy-home")) {
+    const reveal = () => root.classList.add("sy-home");
+    const browsing = () => document.body.classList.contains("browsing");
+    const watch = () => {
+      if (browsing()) return reveal();
+      const observer = new MutationObserver(() => {
+        if (browsing()) {
+          observer.disconnect();
+          reveal();
+        }
+      });
+      observer.observe(document.body, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+      setTimeout(() => {
+        observer.disconnect();
+        reveal();
+      }, 15000);
+    };
+    if (document.body) watch();
+    else addEventListener("DOMContentLoaded", watch, { once: true });
+  }
+
   // The runtime is served under this build's names (scripts/prepare-stomp.mjs), and the helper
   // globals are minted per build: every controller the UI starts is told both.
   const Base = window.StompController;

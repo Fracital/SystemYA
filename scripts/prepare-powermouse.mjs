@@ -102,7 +102,12 @@ export function patches({
       ['\t\t<meta name="description" content="STomp web proxy demo" />\n', ""],
       [
         '<link rel="stylesheet" href="/pm/main.css" />',
-        `<link rel="stylesheet" href="${at("pm/main.css")}" /><style>${obfuscationRules().join("")}</style>`,
+        `<link rel="stylesheet" href="${at("pm/main.css")}" /><style>${obfuscationRules().join("")}</style>${LANDING_GUARD}`,
+      ],
+      // The cover the guard paints over the demo-styled body until the browser view opens.
+      [
+        '<div class="wrapper" id="landing">',
+        '<div id="sy-cover"></div>\n\t\t<div class="wrapper" id="landing">',
       ],
       ['\t\t<script src="/config.js"></script>\n', ""],
       // the demo's live reload client, for its own dev server
@@ -158,6 +163,16 @@ export function patches({
     ],
   };
 }
+
+/**
+ * Hides the demo landing (quick-link grid, demo shell) and paints a neutral cover over the
+ * demo-styled body on a fresh load, so none of it shows for the frames the controller takes to
+ * boot before a navigation opens the browser view. The head script marks this document sy-home
+ * when its frame carries no site to open (the home screen, set on the frame element by
+ * src/systemya/proxy.ts), which reveals the landing at once; otherwise frame.js reveals it once
+ * the browser view is up. The style is in the head, so the cover paints before the body does.
+ */
+const LANDING_GUARD = `<style>#landing{visibility:hidden}html.sy-home #landing{visibility:visible}#sy-cover{position:fixed;inset:0;background:#000;z-index:2147483647}html.sy-home #sy-cover{display:none}</style><script>try{var h=window.frameElement&&window.frameElement.systemyaHash;if(!(typeof h==='string'&&h))document.documentElement.classList.add('sy-home')}catch(e){document.documentElement.classList.add('sy-home')}</script>`;
 
 /** The call that hands pm/main.js's address bars, tabs and bookmarks to SystemYA's suggestions. */
 const SUGGEST_CALL = `try {
