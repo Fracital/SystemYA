@@ -40,7 +40,13 @@ export const RUNTIME = Object.freeze({
   blocker: ["blocker.wasm", "bk.wasm"],
   adblockResources: ["adblock-resources.json", "br.json"],
   rewriterLib: ["rewriterLib.js", "rl.js"],
+  omnibox: ["omnibox.js", "ob.js"],
 });
+
+/** Keys a newer STomp adds that the nightly before it does not have: the build ships them when
+ * the package has them, so the updater can take the release that adds one. The address bars'
+ * dropdown (omnibox.js) came after 4.2.0-nightly.202611192242. */
+export const OPTIONAL = new Set(["omnibox"]);
 
 /** The other files a page loads: the ES module controller (stomp.ts), the classic script build
  * and the search helper (the powerMouse UI). */
@@ -50,8 +56,9 @@ export const PAGE_FILES = Object.freeze({
   search: ["SearchBuilder.js", "sb.js"],
 });
 
-/** In dist/ but loaded by nothing at run time (no bundle names it; build.json is the package's version stamp). */
-const UNUSED = new Set(["codec.wasm", "build.json"]);
+/** In dist/ but loaded by nothing at run time (no bundle names it; build.json is the package's
+ * version stamp; omnibox.mjs is the ES module twin of omnibox.js, which the UI loads). */
+const UNUSED = new Set(["codec.wasm", "build.json", "omnibox.mjs"]);
 
 export const stamped = (name, stamp) =>
   name.replace(/\.(?=[^.]+$)/, `.${stamp}.`);
@@ -156,7 +163,9 @@ export async function prepareStomp({
     await readFile(join(source, PAGE_FILES.script[0]), "utf8"),
   );
   const missing = keys.filter((key) => !(key in RUNTIME));
-  const extra = Object.keys(RUNTIME).filter((key) => !keys.includes(key));
+  const extra = Object.keys(RUNTIME).filter(
+    (key) => !keys.includes(key) && !OPTIONAL.has(key),
+  );
   if (missing.length || extra.length)
     throw new Error(
       `STomp's assets changed (new: ${missing.join(", ") || "none"}; gone: ${extra.join(", ") || "none"}). Update RUNTIME in scripts/prepare-stomp.mjs.`,
@@ -165,6 +174,7 @@ export async function prepareStomp({
   const assets = {};
   const operations = [];
   for (const [key, [from, to]] of Object.entries(RUNTIME)) {
+    if (!keys.includes(key)) continue;
     assets[key] = name(to);
     operations.push({ from: join(source, from), to: name(to) });
   }

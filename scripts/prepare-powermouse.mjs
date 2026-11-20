@@ -18,15 +18,26 @@ import { mintStamp, stamped, syncDirectory } from "./prepare-stomp.mjs";
  * stated number of times, so an upstream change that moves one stops the build instead of
  * shipping a broken page.
  */
-export function patches({ directory, ui, files, runtime, names }) {
+export function patches({
+  directory,
+  ui,
+  files,
+  runtime,
+  names,
+  upstreamOmnibox = false,
+}) {
   const at = (name) => `${ui}${files[name]}`;
   const base = "${proxyBase()}";
   return {
     "pm/main.js": [
       ["const DIRECTORY = '/stomp/';", `const DIRECTORY = '${directory}';`],
-      // the UI registers the service worker itself (since e5f74c5), by the package's file name
+      // the UI registers the service worker itself (since e5f74c5), by the package's file name,
+      // and later by STOMP_ASSETS' (which frame.js sets, so either way it is this build's name)
       [
-        "`${DIRECTORY}serviceWorker.js`",
+        [
+          "`${DIRECTORY}serviceWorker.js`",
+          "`${DIRECTORY}${assetName('serviceWorker')}`",
+        ],
         `\`\${DIRECTORY}${runtime.assets.serviceWorker}\``,
       ],
       [
@@ -57,19 +68,27 @@ export function patches({ directory, ui, files, runtime, names }) {
       ['"/pm/', `"${ui}`, "any"],
       // the bookmark icon check, a regular expression (/^\/pm\/icons\/[\w.-]+$/)
       ["\\/pm\\/", ui.replace(/\//g, "\\/"), 1],
-      // The address bars' suggestions are SystemYA's (src/systemya/omni/ui.ts, bundled into
-      // frame.js): the demo's asked its server's /suggestions, which SystemYA does not have.
-      [
-        "attachSuggestions(mainForm.url);\nattachSuggestions(omni.url);",
-        SUGGEST_CALL,
-      ],
-      // what that call names must still be there, so a rename upstream stops the build
-      ...SUGGEST_NAMES.map((name) => [name, name]),
-      // each page a tab reaches goes into the history the suggestions rank (omni/history.ts)
-      [
-        'function recordUrl(tab) {\n\t// the requested URL and the one the frame reports can differ only by\n\t// normalisation ("https://a.com" vs "https://a.com/"); that is not a new entry\n\tconst url = normalizeUrl(tab.frame.url);\n\tif (!url) return;\n',
-        "function recordUrl(tab) {\n\tconst url = normalizeUrl(tab.frame.url);\n\tif (!url) return;\n\twindow.systemyaVisit?.(tab, url);\n",
-      ],
+      ...(upstreamOmnibox
+        ? // The address bars' dropdown is the package's (omnibox.js, which pm/main.js loads by
+          // its STOMP_ASSETS name); it keeps its history under omnibox:visits, the key the
+          // landing's boxes read too (omni/history.ts).
+          [["function loadOmnibox() {", "function loadOmnibox() {"]]
+        : [
+            // With a STomp from before it, the address bars' suggestions are SystemYA's
+            // (src/systemya/omni/ui.ts, bundled into frame.js): the demo's asked its server's
+            // /suggestions, which SystemYA does not have.
+            [
+              "attachSuggestions(mainForm.url);\nattachSuggestions(omni.url);",
+              SUGGEST_CALL,
+            ],
+            // what that call names must still be there, so a rename upstream stops the build
+            ...SUGGEST_NAMES.map((name) => [name, name]),
+            // each page a tab reaches goes into the history the suggestions rank
+            [
+              'function recordUrl(tab) {\n\t// the requested URL and the one the frame reports can differ only by\n\t// normalisation ("https://a.com" vs "https://a.com/"); that is not a new entry\n\tconst url = normalizeUrl(tab.frame.url);\n\tif (!url) return;\n',
+              "function recordUrl(tab) {\n\tconst url = normalizeUrl(tab.frame.url);\n\tif (!url) return;\n\twindow.systemyaVisit?.(tab, url);\n",
+            ],
+          ]),
     ],
     "pm/main.css": [
       [
@@ -243,7 +262,22 @@ export async function preparePowerMouse({
   const files = Object.fromEntries(
     Object.entries(RENAMED).map(([from, to]) => [from, stamped(to, stamp)]),
   );
-  const table = patches({ directory, ui, files, runtime, names });
+  // A STomp whose UI has its own address bar dropdown (omnibox.js) needs none of SystemYA's.
+  const upstreamOmnibox = (
+    await readFile(join(source, "pm/main.js"), "utf8")
+  ).includes("function loadOmnibox() {");
+  if (upstreamOmnibox && !runtime.assets.omnibox)
+    throw new Error(
+      "The browser UI loads omnibox.js, which this STomp does not ship (scripts/prepare-stomp.mjs RUNTIME)",
+    );
+  const table = patches({
+    directory,
+    ui,
+    files,
+    runtime,
+    names,
+    upstreamOmnibox,
+  });
 
   const out = new Map();
   for (const [name, list] of Object.entries(table))
@@ -274,16 +308,18 @@ export async function preparePowerMouse({
       }),
     ) +
       // the address bars' suggestions, which pm/main.js's patched call starts
-      (
-        await build({
-          entryPoints: [suggestScript],
-          bundle: true,
-          write: false,
-          format: "iife",
-          target: "es2022",
-          legalComments: "none",
-        })
-      ).outputFiles[0].text,
+      (upstreamOmnibox
+        ? ""
+        : (
+            await build({
+              entryPoints: [suggestScript],
+              bundle: true,
+              write: false,
+              format: "iife",
+              target: "es2022",
+              legalComments: "none",
+            })
+          ).outputFiles[0].text),
   );
   // Comments go: they describe the code with the names the copy leaves out. Identifiers stay,
   // so the scripts' globals (navigate, which frame.js calls) keep their names.

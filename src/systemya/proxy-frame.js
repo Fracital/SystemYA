@@ -17,14 +17,19 @@
     }
   };
 
+  // pm/main.js names the files it loads itself (the service worker, the address bars' dropdown)
+  // from STOMP_ASSETS, falling back to the package's own names.
+  window.STOMP_ASSETS = CONFIG.assets;
+
   // demo/server.js renders this as /config.js. SystemYA has no server, so it is fixed here:
   // same origin, Fracital's public Wisp relay, no site pool.
   window.STOMP_CONFIG = CONFIG.stomp;
 
   // The demo's server also answers /api/status and /api/commits. On SystemYA /api/ is
   // Fracital's API, so those requests never leave the page: the status line is off, and the
-  // commit list asks GitHub's public API directly. The address bars' suggestions are
-  // SystemYA's own (src/systemya/omni/ui.ts, bundled after this file), and ask /api/complete.
+  // commit list asks GitHub's public API directly. The address bars' suggestions are the
+  // package's omnibox, or with a STomp from before it, SystemYA's own (src/systemya/omni/ui.ts,
+  // bundled after this file).
   const pageFetch = window.fetch.bind(window);
   const unavailable = () =>
     Promise.reject(new TypeError("Not available on SystemYA"));

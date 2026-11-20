@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   HISTORY_CAP,
   HISTORY_KEY,
+  OLD_HISTORY_KEY,
   clearHistory,
   loadVisits,
   recordVisit,
@@ -22,6 +23,22 @@ const fakeStore = () => {
 
 test("the key names neither a package nor a proxy", () => {
   assert.doesNotMatch(HISTORY_KEY, NAME_WORDS);
+});
+
+test("the history is the one the browser UI's omnibox keeps, and the old key moves to it", () => {
+  assert.equal(HISTORY_KEY, "omnibox:visits");
+  const store = fakeStore();
+  const old = [{ id: "1", url: "https://a.example/", title: "A", at: 1 }];
+  store.setItem(OLD_HISTORY_KEY, JSON.stringify(old));
+  assert.deepEqual(loadVisits(store), old);
+  assert.equal(store.getItem(HISTORY_KEY), JSON.stringify(old));
+  assert.ok(!store.map.has(OLD_HISTORY_KEY));
+  // when both exist (the UI's omnibox already wrote one), the current key wins
+  const current = [{ id: "2", url: "https://b.example/", title: "B", at: 2 }];
+  store.setItem(HISTORY_KEY, JSON.stringify(current));
+  store.setItem(OLD_HISTORY_KEY, JSON.stringify(old));
+  assert.deepEqual(loadVisits(store), current);
+  assert.ok(!store.map.has(OLD_HISTORY_KEY));
 });
 
 test("a visit is recorded once per page a tab reaches, newest first, web pages only", () => {

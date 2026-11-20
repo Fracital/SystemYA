@@ -10,7 +10,11 @@
  */
 import type { HistoryEntry } from "./rank.ts";
 
-export const HISTORY_KEY = "systemya:visits";
+/** The browser UI's own omnibox (STomp's omnibox.js) keeps its visits under this key too, so the
+ * landing's boxes and the address bars share one history. */
+export const HISTORY_KEY = "omnibox:visits";
+/** Where SystemYA kept it before; moved to HISTORY_KEY the first time it is read. */
+export const OLD_HISTORY_KEY = "systemya:visits";
 /** Fracital's cap for a history kept only in the browser. */
 export const HISTORY_CAP = 5000;
 
@@ -42,6 +46,14 @@ export function loadVisits(store: Store | null = local()): Visit[] {
   let raw: string | null = null;
   try {
     raw = store?.getItem(HISTORY_KEY) ?? null;
+    const old = store?.getItem(OLD_HISTORY_KEY) ?? null;
+    if (old !== null) {
+      if (raw === null) {
+        store?.setItem(HISTORY_KEY, old);
+        raw = old;
+      }
+      store?.removeItem(OLD_HISTORY_KEY);
+    }
   } catch {}
   if (raw === cached.raw) return cached.visits;
   let visits: Visit[] = [];
@@ -121,5 +133,6 @@ export function clearHistory(store: Store | null = local()): void {
   lastByTab.clear();
   try {
     store?.removeItem(HISTORY_KEY);
+    store?.removeItem(OLD_HISTORY_KEY);
   } catch {}
 }

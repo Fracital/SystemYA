@@ -13,6 +13,7 @@ import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  OPTIONAL,
   RUNTIME,
   PAGE_FILES,
   assetKeys,
@@ -138,7 +139,45 @@ test("a STomp release with an asset the build does not name stops the build", as
       new URL("node_modules/@sysce/stomp/dist/Controller.js", root),
       "utf8",
     );
-    assert.deepEqual(assetKeys(real).sort(), Object.keys(RUNTIME).sort());
+    // every key the installed STomp has is named, and a named key it lacks is one a newer
+    // release adds (OPTIONAL)
+    const keys = assetKeys(real);
+    assert.deepEqual(
+      keys.filter((key) => !(key in RUNTIME)),
+      [],
+    );
+    for (const key of Object.keys(RUNTIME))
+      assert.ok(keys.includes(key) || OPTIONAL.has(key), key);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a STomp from before omnibox.js builds without it", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "systemya-rt-"));
+  try {
+    const inputs = await fixture(dir);
+    await rm(join(inputs.source, "omnibox.js"));
+    for (const [file] of [
+      ...Object.values(RUNTIME),
+      ...Object.values(PAGE_FILES),
+    ]) {
+      const path = join(inputs.source, file);
+      if (file === "omnibox.js") continue;
+      await writeFile(
+        path,
+        (await readFile(path, "utf8")).replace(',omnibox:"omnibox.js"', ""),
+      );
+    }
+    const runtime = await prepareStomp({
+      ...inputs,
+      destination: join(dir, "out"),
+    });
+    assert.ok(!("omnibox" in runtime.assets));
+    assert.ok(!runtime.files.some((name) => name.startsWith("ob.")));
+    // the ES module twin is in dist/ but not served
+    await writeFile(join(inputs.source, "omnibox.mjs"), "// esm ".repeat(10));
+    await prepareStomp({ ...inputs, destination: join(dir, "out") });
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -233,6 +272,8 @@ test(
       assert.doesNotMatch(error, /stompError|STomp/);
       const frame = await readFile(join(out, `sy.${runtime.stamp}.js`), "utf8");
       assert.ok(frame.includes(runtime.assets.serviceWorker));
+      // pm/main.js names the files it loads itself from STOMP_ASSETS
+      assert.match(frame, /window\.STOMP_ASSETS=/);
       assert.ok(frame.includes(names.access));
       // the UI's carrier follows stomp-config.json's webTransport
       assert.match(
