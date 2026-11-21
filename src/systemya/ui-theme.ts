@@ -9,14 +9,22 @@
  * before body parse), and we re-apply through the frame's PMTheme when SystemYA's theme switches.
  */
 
+import build from "./stomp-build.json";
+
 const CHOICE_KEY = "stomp-demo:theme";
+/** The UI's built-in themes for SystemYA's light and dark (scripts/prepare-powermouse.mjs). */
+const THEMES = build.uiThemes;
 
 type PMTheme = { apply(id: string): unknown };
 
-/** PMTheme's built-in id for SystemYA's current appearance: night maps to dark, else light. */
-function uiThemeChoice(): "light" | "dark" {
+/**
+ * PMTheme's built-in id for SystemYA's current appearance: night maps to Dark, else to SystemYA
+ * Light (Light in a UI from before it). The pages' preference (Settings, Page appearance) matches
+ * the theme's scheme unless the visitor chose one there.
+ */
+function uiThemeChoice(): string {
   const root = document.getElementById("root");
-  return root?.dataset.theme === "dark" ? "dark" : "light";
+  return root?.dataset.theme === "dark" ? THEMES.dark : THEMES.light;
 }
 
 /** Store the choice so theme.js paints it on the next frame load. Storage can throw; ignore it. */

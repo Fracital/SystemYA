@@ -12,6 +12,7 @@ import {
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   OPTIONAL,
   RUNTIME,
@@ -26,6 +27,7 @@ import {
   missingReferences,
   patches,
   preparePowerMouse,
+  uiFeatures,
 } from "../scripts/prepare-powermouse.mjs";
 import {
   NAME_WORDS,
@@ -263,7 +265,9 @@ test(
         order.join(),
       );
       const js = await readFile(join(out, `ma.${runtime.stamp}.js`), "utf8");
-      assert.match(js, /const DIRECTORY="\/vendor\/rt\/"/);
+      // (the minifier joins it to the consts before it once it follows TOR_REQUESTED)
+      assert.match(js, /(?:const |,)DIRECTORY="\/vendor\/rt\/"/);
+      assert.doesNotMatch(js, /stomp-tor/);
       assert.match(js, /\/vendor\/rt\/ln\.[0-9a-f]{8}\.js/);
       // frame.js calls this global of the UI's script, so the copy keeps its name
       assert.match(js, /async function navigate\(/);
@@ -302,12 +306,13 @@ test(
   { skip: !haveDemo && "vendor/powermouse is not checked out" },
   async () => {
     const mainJs = await readFile(new URL("pm/main.js", demo), "utf8");
-    // detected the way prepare-powermouse.mjs detects it: a UI with its own omnibox
-    const upstreamOmnibox = mainJs.includes("function loadOmnibox() {");
+    const indexHtml = await readFile(new URL("index.html", demo), "utf8");
+    // what this UI has (its own omnibox, the Tor box, the installable app, the call mode)
+    const features = await uiFeatures(fileURLToPath(demo));
     const table = patches({
       directory: "/vendor/rt/",
       ui: "/ui/",
-      upstreamOmnibox,
+      ...features,
       files: {
         "error.html": "er.x.html",
         "pm/main.css": "ma.x.css",
@@ -321,7 +326,18 @@ test(
       },
       names: { error: "$abcdef" },
     });
-    applyPatches("pm/main.js", mainJs, table["pm/main.js"]);
+    const js = applyPatches("pm/main.js", mainJs, table["pm/main.js"]);
+    const html = applyPatches("index.html", indexHtml, table["index.html"]);
+    assert.match(js, /const DIRECTORY = '\/vendor\/rt\/';/);
+    // no Tor relay: the choice is never read and its box is not offered
+    if (features.tor) {
+      assert.match(js, /const TOR_REQUESTED = false && /);
+      assert.match(html, /id="torLabel" hidden/);
+    }
+    // the copy is no installable app: no manifest link, no title bar color, no Install item
+    assert.doesNotMatch(html, /manifest|theme-color|menuInstall|pmAppManifest/);
+    // the opt-in call mode stays off
+    if (features.dialing) assert.match(js, /const JUST_CALL = false;/);
     assert.throws(
       () => applyPatches("pm/main.js", "no match here", table["pm/main.js"]),
       /expected .* found it 0 times/,

@@ -310,6 +310,7 @@ if (
     transport: runtime.transport,
     names,
     ui: ui.entry,
+    uiThemes: ui.themes,
   };
   await writeFile(
     resolve("src/systemya/stomp-build.json"),

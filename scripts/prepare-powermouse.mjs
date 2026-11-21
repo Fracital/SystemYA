@@ -25,12 +25,43 @@ export function patches({
   runtime,
   names,
   upstreamOmnibox = false,
+  tor = false,
+  appShell = false,
+  dialing = false,
 }) {
   const at = (name) => `${ui}${files[name]}`;
   const base = "${proxyBase()}";
   return {
     "pm/main.js": [
-      ["const DIRECTORY = '/stomp/';", `const DIRECTORY = '${directory}';`],
+      [
+        // a separate service worker scope for the Tor route came in ec02970
+        [
+          "const DIRECTORY = TOR_REQUESTED ? '/stomp-tor/' : '/stomp/';",
+          "const DIRECTORY = '/stomp/';",
+        ],
+        `const DIRECTORY = '${directory}';`,
+      ],
+      ...(tor
+        ? // SystemYA has no Tor relay: the choice is never read (a saved stomp-demo:tor or a
+          // ?tor would otherwise stop the browser with "Tor relay unavailable"), and its box is
+          // hidden (index.html below).
+          [
+            [
+              "const TOR_REQUESTED = (() => {",
+              "const TOR_REQUESTED = false && (() => {",
+            ],
+          ]
+        : []),
+      ...(dialing
+        ? // The opt-in call mode (?mode=just-call-stomp) stays off: its call page has no stamped
+          // name in the runtime, and the mode's word would be in the frame's address.
+          [
+            [
+              "const JUST_CALL =\n\tnew URLSearchParams(location.search).get('mode') === 'just-call-stomp';",
+              "const JUST_CALL = false;",
+            ],
+          ]
+        : []),
       // the UI registers the service worker itself (since e5f74c5), by the package's file name,
       // and later by STOMP_ASSETS' (which frame.js sets, so either way it is this build's name)
       [
@@ -111,6 +142,28 @@ export function patches({
         '<link rel="stylesheet" href="/pm/main.css" />',
         `<link rel="stylesheet" href="${at("pm/main.css")}" /><style>${obfuscationRules().join("")}</style>${LANDING_GUARD}`,
       ],
+      ...(appShell
+        ? // The installable app (manifest.webmanifest, app-worker.js, the title bar's
+          // theme-color) is powerMouse's own site's: the copy ships none of it, so the UI never
+          // links a manifest, never registers the app worker (pm/main.js registers it only where
+          // the manifest link is) and has no Install item in its menu.
+          [
+            [
+              '\t\t<!-- the app window\'s title bar: pm/theme.js keeps it the theme\'s -->\n\t\t<meta name="theme-color" content="#000000" />\n',
+              "",
+            ],
+            [
+              "\t\t<script>\n\t\t\t// powerMouse as an installed app (manifest.webmanifest, the root's\n\t\t\t// app-worker.js): only on the site's own page at its root, the top\n\t\t\t// one. A copy of the page in a frame or under another path (a host\n\t\t\t// that ships this page inside its own) is no app: a manifest there\n\t\t\t// makes nothing installable, and a root worker would be the host's.\n\t\t\tif (window === window.top && /^\\/(index\\.html)?$/.test(location.pathname))\n\t\t\t\tdocument.head.append(\n\t\t\t\t\tObject.assign(document.createElement('link'), {\n\t\t\t\t\t\tid: 'pmAppManifest',\n\t\t\t\t\t\trel: 'manifest',\n\t\t\t\t\t\thref: '/manifest.webmanifest',\n\t\t\t\t\t}),\n\t\t\t\t);\n\t\t</script>\n",
+              "",
+            ],
+            [
+              '\t\t\t<button\n\t\t\t\tid="menuInstall"\n\t\t\t\tclass="pmMenuItem"\n\t\t\t\ttype="button"\n\t\t\t\trole="menuitem"\n\t\t\t\ttabindex="-1"\n\t\t\t\thidden\n\t\t\t></button>\n',
+              "",
+            ],
+          ]
+        : []),
+      // SystemYA has no Tor relay (pm/main.js above): its box is not offered.
+      ...(tor ? [['id="torLabel"', 'id="torLabel" hidden']] : []),
       // the Extensions page's stylesheet, in the head after main.css
       [
         '<link rel="stylesheet" href="/pm/extensions-page.css" />',
@@ -276,8 +329,54 @@ export function missingReferences(texts, served, { ui, directory }) {
   return [...missing];
 }
 
+/**
+ * What this upstream UI has that patches() handles only where it is there. Each is read from a
+ * mark of its own (a file, the markup), not from the string its patch replaces, so a rename of
+ * that string stops the build.
+ */
+export async function uiFeatures(source) {
+  const read = (name) => readFile(join(source, name), "utf8");
+  const [mainJs, indexHtml, themeJs] = await Promise.all([
+    read("pm/main.js"),
+    read("index.html"),
+    read("pm/theme.js"),
+  ]);
+  return {
+    // the address bars' dropdown is the package's own (omnibox.js), so SystemYA's is not needed
+    upstreamOmnibox: mainJs.includes("function loadOmnibox() {"),
+    // the Tor box beside Block ads (ec02970)
+    tor: indexHtml.includes('id="torLabel"'),
+    // the installable app (bfda786)
+    appShell: existsSync(join(source, "manifest.webmanifest")),
+    // the opt-in call mode (807f0ac)
+    dialing: mainJs.includes("just-call-stomp"),
+    // The built-in themes SystemYA's light and dark show as (src/systemya/ui-theme.ts):
+    // SystemYA Light (7813c5a; the black home page with white bars), else Light.
+    themes: {
+      light: themeJs.includes("id: 'systemya-light',")
+        ? "systemya-light"
+        : "light",
+      dark: "dark",
+    },
+  };
+}
+
 /** Served as they are (images); they keep their names. */
 const ASSETS = ["pm/logo.png", "pm/noise.png", "pm/header-background.png"];
+
+/** The installed app's icons, which only its manifest and app worker name (neither ships). */
+const APP_ICONS = new Set([
+  "app-192.png",
+  "app-512.png",
+  "app-maskable-512.png",
+]);
+
+/**
+ * Files of an older UI that pm/main.js still names only to recognise what that build saved
+ * (FORMER_DEFAULTS: a bookmark whose icon is still the old default's gets the new one). Nothing
+ * loads them, so they are not served, and the served-files check takes them as known.
+ */
+const FORMER = ["icons/estro.svg"];
 
 /** Code and pages, renamed: short neutral names with the build's stamp. */
 const RENAMED = {
@@ -313,10 +412,8 @@ export async function preparePowerMouse({
   const files = Object.fromEntries(
     Object.entries(RENAMED).map(([from, to]) => [from, stamped(to, stamp)]),
   );
-  // A STomp whose UI has its own address bar dropdown (omnibox.js) needs none of SystemYA's.
-  const upstreamOmnibox = (
-    await readFile(join(source, "pm/main.js"), "utf8")
-  ).includes("function loadOmnibox() {");
+  const features = await uiFeatures(source);
+  const { upstreamOmnibox } = features;
   if (upstreamOmnibox && !runtime.assets.omnibox)
     throw new Error(
       "The browser UI loads omnibox.js, which this STomp does not ship (scripts/prepare-stomp.mjs RUNTIME)",
@@ -327,7 +424,7 @@ export async function preparePowerMouse({
     files,
     runtime,
     names,
-    upstreamOmnibox,
+    ...features,
   });
 
   const out = new Map();
@@ -398,10 +495,14 @@ export async function preparePowerMouse({
   for (const name of ASSETS)
     out.set(name.replace(/^pm\//, ""), await readFile(join(source, name)));
   for (const entry of await readdir(join(source, "pm/icons")))
-    out.set(`icons/${entry}`, await readFile(join(source, "pm/icons", entry)));
+    if (!APP_ICONS.has(entry))
+      out.set(
+        `icons/${entry}`,
+        await readFile(join(source, "pm/icons", entry)),
+      );
   out.set("fonts/montserrat-latin-400-normal.woff2", await readFile(font));
   const served = new Set([
-    ...[...out.keys()].map((name) => `${ui}${name}`),
+    ...[...out.keys(), ...FORMER].map((name) => `${ui}${name}`),
     ...runtime.files.map((name) => `${directory}${name}`),
   ]);
   // errors name the upstream file (pm/main.js), not this build's stamped copy
@@ -421,5 +522,9 @@ export async function preparePowerMouse({
     );
   await syncDirectory(destination, out);
   console.log(`Browser UI: ${out.size} files in ${destination}`);
-  return { entry: `${ui}${files["index.html"]}`, files: [...out.keys()] };
+  return {
+    entry: `${ui}${files["index.html"]}`,
+    files: [...out.keys()],
+    themes: features.themes,
+  };
 }
