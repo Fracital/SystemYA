@@ -57,6 +57,15 @@ export const OPTIONAL = new Set([
   "adblockSnapshot",
 ]);
 
+/** Keys that name no file in dist/: the service worker makes the page itself, so the build gives
+ * each a short neutral name with the stamp, as it does the files, and copies nothing. Just call
+ * stomp's call page (callPage, the one page every dialed frame loads) came after
+ * 4.2.0-nightly.202611201538; a build ships its name when the controller has the key. SystemYA
+ * does not opt in to dialing, so nothing asks for it. */
+export const NAME_ONLY = Object.freeze({
+  callPage: "pg.html",
+});
+
 /** The other files a page loads: the ES module controller (stomp.ts), the classic script build
  * and the search helper (the powerMouse UI). */
 export const PAGE_FILES = Object.freeze({
@@ -171,7 +180,7 @@ export async function prepareStomp({
   const keys = assetKeys(
     await readFile(join(source, PAGE_FILES.script[0]), "utf8"),
   );
-  const missing = keys.filter((key) => !(key in RUNTIME));
+  const missing = keys.filter((key) => !(key in RUNTIME || key in NAME_ONLY));
   const extra = Object.keys(RUNTIME).filter(
     (key) => !keys.includes(key) && !OPTIONAL.has(key),
   );
@@ -193,6 +202,8 @@ export async function prepareStomp({
     assets[key] = name(to);
     operations.push({ from: join(source, from), to: name(to) });
   }
+  for (const [key, short] of Object.entries(NAME_ONLY))
+    if (keys.includes(key)) assets[key] = name(short);
   const page = {};
   for (const [key, [from, to]] of Object.entries(PAGE_FILES)) {
     page[key] = name(to);

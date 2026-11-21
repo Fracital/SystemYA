@@ -51,8 +51,11 @@
   };
 
   // pm/main.js names the files it loads itself (the service worker, the address bars' dropdown)
-  // from STOMP_ASSETS, falling back to the package's own names.
-  window.STOMP_ASSETS = CONFIG.assets;
+  // from STOMP_ASSETS, falling back to the package's own names, and Download's file as
+  // STOMP_ASSETS.offline, which only the UI reads (the controller gets CONFIG.assets above).
+  window.STOMP_ASSETS = CONFIG.offline
+    ? { ...CONFIG.assets, offline: CONFIG.offline }
+    : CONFIG.assets;
 
   // demo/server.js renders this as /config.js. SystemYA has no server, so it is fixed here:
   // same origin, Fracital's public Wisp relay, no site pool.

@@ -157,16 +157,27 @@ copy leaves them out where the UI has them (`uiFeatures()` in
 `theme-color` meta and the Install menu item; `manifest.webmanifest`,
 `app-worker.js` and the app icons are not copied, so the UI never registers
 the app worker), the Tor box (SystemYA has no Tor relay, so the box is
-hidden and a saved Tor choice is not read) and the opt-in call mode
-(`?mode=just-call-stomp`, which stays off). The UI keeps its own frame's
+hidden and a saved Tor choice is not read, nor Tor's readiness asked for), the
+opt-in call mode (`?mode=just-call-stomp`, which stays off) and Download, the
+home page's button that saves the UI as one `offline.html`. SystemYA serves
+no `offline.html`, so Download is hidden unless `offline` in
+`src/systemya/stomp-config.json` names one: a URL (another origin's must
+answer with CORS, as `https://stomp.fracit.al/offline.html` does) or a file
+name under the runtime's directory. `proxy-frame.js` hands it to the UI as
+`STOMP_ASSETS.offline`, and the saved copy carries the page's own wisp
+relay. The UI keeps its own frame's
 address as `/ui/ix.<stamp>.html?<token>#<route>`; the token is the UI's,
 never written to the page's address, which stays `/?2#<route>`. SystemYA's
 light and dark show in the UI as its SystemYA Light and Dark themes
 (`src/systemya/ui-theme.ts`), and the pages in it take that scheme unless
 the visitor picks one in its Page appearance setting. The UI's scripts and
 pages get short names with a stamp minted per build (`ma.<stamp>.js`), as do
-the runtime's files and STomp's page globals. The names are written to
-`src/systemya/stomp-build.json`. `src/systemya/proxy-frame.js` runs inside the
+the runtime's files and STomp's page globals. An asset STomp names that is no
+file of the package (`NAME_ONLY` in `prepare-stomp.mjs`: the call page,
+`callPage`, which the service worker makes for a controller that opts in to
+dialing) gets a stamped name too (`pg.<stamp>.html`) when the package's
+`DEFAULT_ASSETS` has it, and nothing is copied for it. The names are written
+to `src/systemya/stomp-build.json`. `src/systemya/proxy-frame.js` runs inside the
 UI and passes those names to STomp. `prepare:stomp` updates the folders in
 place, so a running `npm run dev` picks up the new files.
 

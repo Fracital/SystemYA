@@ -26,16 +26,21 @@ export function patches({
   names,
   upstreamOmnibox = false,
   tor = false,
+  torState = false,
   appShell = false,
   dialing = false,
+  offline = false,
+  offlineFile = null,
 }) {
   const at = (name) => `${ui}${files[name]}`;
   const base = "${proxyBase()}";
   return {
     "pm/main.js": [
       [
-        // a separate service worker scope for the Tor route came in ec02970
+        // a separate service worker scope for the Tor route came in ec02970, and the dialing
+        // mode's scope of its own (CFG.dial) after 058c7e7
         [
+          "const DIRECTORY = DIAL\n\t? TOR_REQUESTED\n\t\t? DIAL.torDirectory\n\t\t: DIAL.directory\n\t: TOR_REQUESTED\n\t\t? '/stomp-tor/'\n\t\t: '/stomp/';",
           "const DIRECTORY = TOR_REQUESTED ? '/stomp-tor/' : '/stomp/';",
           "const DIRECTORY = '/stomp/';",
         ],
@@ -49,6 +54,16 @@ export function patches({
             [
               "const TOR_REQUESTED = (() => {",
               "const TOR_REQUESTED = false && (() => {",
+            ],
+          ]
+        : []),
+      ...(torState
+        ? // Tor's readiness (8cbf81f) is never asked for (TOR_REQUESTED is false), and its
+          // words stay the relay's
+          [
+            [
+              "'Tor is not running on the server. Proxied pages load once it is.'",
+              "'Tor is not running on the server. Pages load once it is.'",
             ],
           ]
         : []),
@@ -162,8 +177,30 @@ export function patches({
             ],
           ]
         : []),
-      // SystemYA has no Tor relay (pm/main.js above): its box is not offered.
+      // SystemYA has no Tor relay (pm/main.js above): its box is not offered, and with it
+      // Tor's readiness (#torState, 8cbf81f), which only Tor mode asks for.
       ...(tor ? [['id="torLabel"', 'id="torLabel" hidden']] : []),
+      // Download (b9994a9) saves offline.html, which pm/main.js fetches from /offline.html or
+      // from STOMP_ASSETS.offline. SystemYA serves no offline.html, so the link is hidden unless
+      // stomp-config.json names one as `offline` (frame.js passes it on as STOMP_ASSETS.offline).
+      ...(offline
+        ? [
+            [
+              'id="offlineDownload"',
+              offlineFile
+                ? 'id="offlineDownload"'
+                : 'id="offlineDownload" hidden',
+            ],
+            [
+              'href="/offline.html"',
+              `href="${offlineFile ? attribute(offlineFile) : "#"}"`,
+            ],
+            [
+              'title="Save powerMouse as one HTML file that runs from your computer through this page\'s wisp server"',
+              'title="Save the browser as one HTML file that runs from your computer through this page\'s relay"',
+            ],
+          ]
+        : []),
       // the Extensions page's stylesheet, in the head after main.css
       [
         '<link rel="stylesheet" href="/pm/extensions-page.css" />',
@@ -238,6 +275,13 @@ export function patches({
     ],
   };
 }
+
+/** `text` as the value of an HTML attribute in double quotes. */
+const attribute = (text) =>
+  String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;");
 
 /**
  * Hides the demo landing (quick-link grid, demo shell) and paints a neutral cover over the
@@ -348,8 +392,12 @@ export async function uiFeatures(source) {
     tor: indexHtml.includes('id="torLabel"'),
     // the installable app (bfda786)
     appShell: existsSync(join(source, "manifest.webmanifest")),
+    // Tor's readiness beside the box (8cbf81f)
+    torState: indexHtml.includes('id="torState"'),
     // the opt-in call mode (807f0ac)
     dialing: mainJs.includes("just-call-stomp"),
+    // Download, the single-file offline.html (b9994a9)
+    offline: indexHtml.includes('id="offlineDownload"'),
     // The built-in themes SystemYA's light and dark show as (src/systemya/ui-theme.ts):
     // SystemYA Light (7813c5a; the black home page with white bars), else Light.
     themes: {
@@ -418,6 +466,8 @@ export async function preparePowerMouse({
     throw new Error(
       "The browser UI loads omnibox.js, which this STomp does not ship (scripts/prepare-stomp.mjs RUNTIME)",
     );
+  if (config.offline != null && typeof config.offline !== "string")
+    throw new Error("stomp-config.json: offline must be a URL or a file name");
   const table = patches({
     directory,
     ui,
@@ -425,6 +475,7 @@ export async function preparePowerMouse({
     runtime,
     names,
     ...features,
+    offlineFile: config.offline || null,
   });
 
   const out = new Map();
@@ -442,6 +493,8 @@ export async function preparePowerMouse({
       JSON.stringify({
         repo: config.repo,
         assets: runtime.assets,
+        // Download's file (STOMP_ASSETS.offline), when stomp-config.json names one
+        offline: (features.offline && config.offline) || null,
         names,
         stomp: {
           // same origin: no proxy origin, so no isolation frame

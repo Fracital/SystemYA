@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  NAME_ONLY,
   OPTIONAL,
   RUNTIME,
   PAGE_FILES,
@@ -145,7 +146,7 @@ test("a STomp release with an asset the build does not name stops the build", as
     // release adds (OPTIONAL)
     const keys = assetKeys(real);
     assert.deepEqual(
-      keys.filter((key) => !(key in RUNTIME)),
+      keys.filter((key) => !(key in RUNTIME || key in NAME_ONLY)),
       [],
     );
     for (const key of Object.keys(RUNTIME))
@@ -187,6 +188,51 @@ test("a STomp from before the optional assets builds without them", async () => 
     // the ES module twin is in dist/ but not served
     await writeFile(join(inputs.source, "omnibox.mjs"), "// esm ".repeat(10));
     await prepareStomp({ ...inputs, destination: join(dir, "out") });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a key that names no file gets a stamped name and copies nothing", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "systemya-rt-"));
+  try {
+    const inputs = await fixture(dir);
+    // without the key (a STomp from before the call page) there is no name for it
+    const before = await prepareStomp({
+      ...inputs,
+      destination: join(dir, "out"),
+    });
+    assert.ok(!("callPage" in before.assets));
+    // a STomp whose DEFAULT_ASSETS has the call page, which no file of dist/ is
+    const controller = join(inputs.source, PAGE_FILES.script[0]);
+    await writeFile(
+      controller,
+      (await readFile(controller, "utf8")).replace(
+        /\}\n/,
+        ',callPage:"k3v9.html"}\n',
+      ),
+    );
+    const runtime = await prepareStomp({
+      ...inputs,
+      destination: join(dir, "out"),
+    });
+    assert.equal(runtime.assets.callPage, `pg.${runtime.stamp}.html`);
+    assert.doesNotMatch(runtime.assets.callPage, NAME_WORDS);
+    assert.ok(!runtime.files.includes(runtime.assets.callPage));
+    assert.ok(!runtime.files.some((name) => /^(?:pg|k3v9)\./.test(name)));
+    assert.deepEqual(
+      (await readdir(join(dir, "out"))).sort(),
+      [...runtime.files].sort(),
+    );
+    // a file of that name in dist/ is a file the build does not name
+    await writeFile(
+      join(inputs.source, "k3v9.html"),
+      "<!-- page -->".repeat(5),
+    );
+    await assert.rejects(
+      prepareStomp({ ...inputs, destination: join(dir, "out") }),
+      /ships k3v9\.html/,
+    );
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -338,6 +384,40 @@ test(
     assert.doesNotMatch(html, /manifest|theme-color|menuInstall|pmAppManifest/);
     // the opt-in call mode stays off
     if (features.dialing) assert.match(js, /const JUST_CALL = false;/);
+    // SystemYA serves no offline.html: Download is hidden, names no file and no package
+    if (features.offline) {
+      assert.match(html, /id="offlineDownload" hidden/);
+      assert.match(html, /href="#"\s+download="offline\.html"/);
+      assert.doesNotMatch(html, /\/offline\.html|Save powerMouse/);
+      // unless stomp-config.json names a file for it as `offline`
+      const named = applyPatches(
+        "index.html",
+        indexHtml,
+        patches({
+          directory: "/vendor/rt/",
+          ui: "/ui/",
+          ...features,
+          offlineFile: "https://example.test/offline.html?a=1&b=2",
+          files: {
+            "error.html": "er.x.html",
+            "pm/main.css": "ma.x.css",
+            "pm/main.js": "ma.x.js",
+            "frame.js": "sy.x.js",
+          },
+          runtime: {
+            transport: { epoxy: "ln.x.js", h3: "q3.x.js", libcurl: "cu.x.js" },
+            page: { script: "ct.x.js", search: "sb.x.js" },
+            assets: { serviceWorker: "sw.x.js", omnibox: "ob.x.js" },
+          },
+          names: { error: "$abcdef" },
+        })["index.html"],
+      );
+      assert.doesNotMatch(named, /id="offlineDownload" hidden/);
+      assert.match(
+        named,
+        /href="https:\/\/example\.test\/offline\.html\?a=1&amp;b=2"/,
+      );
+    }
     assert.throws(
       () => applyPatches("pm/main.js", "no match here", table["pm/main.js"]),
       /expected .* found it 0 times/,
